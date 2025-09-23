@@ -6,6 +6,12 @@ import { cn } from "@/lib/utils";
 import { NAV, type NavNode } from "@/navigation/nav";
 import BrandLogo from "../common/BrandLogo";
 
+function branchHasActiveDescendant(node: NavNode, pathname: string): boolean {
+  if (node.path && pathname.startsWith(node.path)) return true;
+  return (node.children ?? []).some((c) => branchHasActiveDescendant(c, pathname));
+}
+
+
 export default function Sidebar() {
   return (
     <aside className="hidden w-[260px] shrink-0 border-r bg-sidebar/50 lg:block">
@@ -34,11 +40,7 @@ function NavBranch({ node, depth }: { node: NavNode; depth: number }) {
 
   // Determine active state for leaves and groups
   const isActiveLeaf = node.path ? location.pathname.startsWith(node.path) : false;
-  const isAncestorActive =
-    node.children?.some((c) =>
-      location.pathname.startsWith(c.path ?? "") ||
-      c.children?.some((g) => location.pathname.startsWith(g.path ?? ""))
-    ) ?? false;
+  const isAncestorActive = !isLeaf && branchHasActiveDescendant(node, location.pathname);
 
   const [open, setOpen] = React.useState(isAncestorActive);
 
@@ -49,13 +51,20 @@ function NavBranch({ node, depth }: { node: NavNode; depth: number }) {
         to={node.path!}
         className={({ isActive }) =>
           cn(
-            "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent/60",
+            "group flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent/65",
             isActive ? "bg-accent text-foreground ring-1 ring-border" : "text-muted-foreground"
           )
         }
         style={{ paddingLeft: 12 + depth * 16 }}
       >
-        {node.icon && <node.icon className="h-4 w-4 opacity-70" />}
+        {node.icon && (
+          <node.icon
+            className={cn(
+              "h-4 w-4 transition-colors",
+              isActiveLeaf ? "text-blue-500/80" : "text-muted-foreground/80"
+            )}
+          />
+        )}
         <span className="truncate">{node.title}</span>
       </NavLink>
     );
@@ -68,12 +77,19 @@ function NavBranch({ node, depth }: { node: NavNode; depth: number }) {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-accent/60",
+          "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-accent/65",
           (isAncestorActive || isActiveLeaf) ? "text-foreground" : "text-muted-foreground"
         )}
         style={{ paddingLeft: 12 + depth * 16 }}
       >
-        {node.icon && <node.icon className="h-4 w-4 opacity-70" />}
+        {node.icon && (
+          <node.icon
+            className={cn(
+              "h-4 w-4 transition-colors",
+              isAncestorActive ? "text-blue-300" : "text-muted-foreground/80"
+            )}
+          />
+        )}
         <span className="flex-1 truncate">{node.title}</span>
         <ChevronDown className={cn("h-4 w-4 transition-transform", open ? "rotate-180" : "rotate-0")} />
       </button>

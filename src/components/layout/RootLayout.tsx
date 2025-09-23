@@ -14,8 +14,8 @@ export default function RootLayout() {
       <Sidebar />
       <div className="flex min-h-screen flex-1 flex-col">
         <HeaderBar />
-        <main className="flex-1 p-6">
-          <h1 className="mb-2 text-xl font-semibold">{title}</h1>
+        <main className="flex-1 p-6 py-4">
+          <h1 className="text-2xl font-semibold">{title}</h1>
           <Outlet />
         </main>
       </div>

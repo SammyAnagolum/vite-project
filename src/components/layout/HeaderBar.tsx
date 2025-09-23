@@ -14,11 +14,20 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bell, HelpCircle, LogOut, Settings, User, Search as SearchIcon } from "lucide-react";
 
+const ACRONYMS: Record<string, string> = {
+  cr: "CR",
+  iam: "IAM",
+}
+
 function titleCase(slug: string) {
   return slug
     .split("-")
     .map(s => s.charAt(0).toUpperCase() + s.slice(1))
     .join(" ");
+}
+
+function getCase(part: string): string {
+  return ACRONYMS[part.toLowerCase()] ? ACRONYMS[part.toLowerCase()] : titleCase(part)
 }
 
 function Breadcrumbs() {
@@ -33,7 +42,7 @@ function Breadcrumbs() {
         return (
           <React.Fragment key={href}>
             <span className="mx-1">/</span>
-            <Link to={href} className="hover:text-foreground">{titleCase(p)}</Link>
+            <Link to={href} className="hover:text-foreground">{getCase(p)}</Link>
           </React.Fragment>
         );
       })}
@@ -87,13 +96,13 @@ export default function HeaderBar() {
             <Avatar className="h-7 w-7">
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <span className="hidden text-xs text-muted-foreground sm:inline">{user.email}</span>
+            <span className="hidden text-sm text-muted-foreground sm:inline">{user.email}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end">
           <DropdownMenuLabel className="leading-tight">
-            <div className="font-medium">{user.name}</div>
-            <div className="text-xs text-muted-foreground">{user.email}</div>
+            <div className="font-medium text-lg">{user.name}</div>
+            <div className="text-base text-muted-foreground">{user.email}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
