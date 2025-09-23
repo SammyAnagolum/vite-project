@@ -20,6 +20,7 @@ import {
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
+import { AppIcons } from "@/lib/icon-map";
 
 /** ------------ Types ------------ */
 type EntityType = "AA" | "FIP" | "FIU";
@@ -153,33 +154,33 @@ export default function SecretExpiryDetails() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto max-w-7xl p-6">
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-7xl py-6">
         {/* KPI cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi title="Already Expired" value={kpis.expired} tone="red" />
-          <Kpi title="Expiring ≤ 10 days" value={kpis.soon} tone="amber" />
-          <Kpi title="Reset (last 24h)" value={kpis.reset24h} tone="sky" />
-          <Kpi title="Most Expired Type" value={kpis.mostExpiredType} tone="indigo" />
+          <Kpi title="Already Expired" value={kpis.expired} tone="red" icon={<AppIcons.TriangleAlert className="h-8 w-8" />} />
+          <Kpi title="Expiring ≤ 10 days" value={kpis.soon} tone="amber" icon={<AppIcons.CalendarClock className="h-8 w-8" />} />
+          <Kpi title="Reset (last 24h)" value={kpis.reset24h} tone="sky" icon={<AppIcons.RefreshCcw className="h-8 w-8" />} />
+          <Kpi title="Most Expired Type" value={kpis.mostExpiredType} tone="indigo" icon={<AppIcons.ShieldAlert className="h-8 w-8" />} />
         </div>
 
         <Card className="relative p-4 md:p-5">
           {/* Filters */}
           <div className="mb-4 grid gap-3 md:grid-cols-12 md:items-end">
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 From date
               </label>
               <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
             </div>
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 To date
               </label>
               <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
             </div>
 
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 Search by Entity Name
               </label>
@@ -209,7 +210,7 @@ export default function SecretExpiryDetails() {
               </Select>
             </div>
 
-            <div className="md:col-span-12 flex gap-2 md:justify-end">
+            <div className="md:col-span-3 flex gap-2 md:justify-end">
               <Button variant="outline" onClick={reset}>Reset</Button>
               <Button variant="outline" onClick={refresh} disabled={isRefreshing}>
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -236,7 +237,7 @@ export default function SecretExpiryDetails() {
                   <tr key={`${r.id}-${i}`} className="odd:bg-muted/40 hover:bg-accent transition-colors">
                     <td className="px-3 py-3 text-center tabular-nums">{startIdx + i + 1}</td>
                     <td className="px-3 py-3">{r.name}</td>
-                    <td className="px-3 py-3 font-mono text-[13px]">{r.id}</td>
+                    <td className="px-3 py-3 font-mono text-sm">{r.id}</td>
                     <td className="px-3 py-3"><TypeBadge type={r.type} /></td>
                     <td className="px-3 py-3">{r.expiryDateFmt}</td>
                     <td className="px-3 py-3 pr-4 text-right tabular-nums font-medium">

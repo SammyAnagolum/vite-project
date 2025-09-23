@@ -126,14 +126,14 @@ export default function UserTokens() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto max-w-7xl p-6">
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-7xl py-6">
         {/* KPI Cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi icon={<Users className="h-5 w-5" />} title="Total Users" value={kpis.totalUsers} tone="indigo" />
-          <Kpi icon={<TrendingUp className="h-5 w-5" />} title="High Volume" value={kpis.highVolume} tone="emerald" />
-          <Kpi icon={<BadgeCheck className="h-5 w-5" />} title="Total Tokens Issued" value={kpis.totalTokens} tone="sky" />
-          <Kpi icon={<Clock className="h-5 w-5" />} title="Avg Tokens/User" value={kpis.avg} tone="amber" />
+          <Kpi icon={<Users className="h-8 w-8" />} title="Total Users" value={kpis.totalUsers} tone="indigo" />
+          <Kpi icon={<TrendingUp className="h-8 w-8" />} title="High Volume" value={kpis.highVolume} tone="emerald" />
+          <Kpi icon={<BadgeCheck className="h-8 w-8" />} title="Total Tokens Issued" value={kpis.totalTokens} tone="sky" />
+          <Kpi icon={<Clock className="h-8 w-8" />} title="Avg Tokens/User" value={kpis.avg} tone="amber" />
         </div>
 
         <Card className="p-4 md:p-5">
@@ -195,7 +195,7 @@ export default function UserTokens() {
                   <tr key={u.id} className="odd:bg-muted/40 hover:bg-accent transition-colors">
                     <td className="px-3 py-3 text-center tabular-nums">{startIdx + i + 1}</td>
                     <td className="px-3 py-3">{u.userName}</td>
-                    <td className="px-3 py-3 font-mono text-[13px]">{u.userId}</td>
+                    <td className="px-3 py-3 font-mono text-sm">{u.userId}</td>
                     <td className="px-3 py-3">{u.lastTokenIssued}</td>
                     <td className="px-3 py-3 text-right font-medium tabular-nums">{u.tokensIssued}</td>
                   </tr>

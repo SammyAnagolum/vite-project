@@ -44,6 +44,7 @@ import { KV } from "@/components/common/KV";
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
+import { AppIcons } from "@/lib/icon-map";
 
 /** ------------------------------------ Types ------------------------------------ */
 type Row = { name: string; cr_id: string; type: "AA" | "FIP" | "FIU" };
@@ -271,13 +272,13 @@ export default function CREntitiesMock() {
 
   return (
     <div className="">
-      <div className="mx-auto max-w-7xl p-6">
+      <div className="mx-auto max-w-7xl py-6">
         {/* KPI cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi title="Total (filtered)" value={stats.total.toLocaleString()} />
-          <Kpi title="AA" value={stats.byAA.toLocaleString()} tone="emerald" />
-          <Kpi title="FIP" value={stats.byFIP.toLocaleString()} tone="indigo" />
-          <Kpi title="FIU" value={stats.byFIU.toLocaleString()} tone="sky" />
+          <Kpi title="Total (filtered)" value={stats.total.toLocaleString()} icon={<AppIcons.Users className="h-8 w-8" />} />
+          <Kpi title="AA" value={stats.byAA.toLocaleString()} tone="emerald" icon={<AppIcons.AA className="h-8 w-8" />} />
+          <Kpi title="FIP" value={stats.byFIP.toLocaleString()} tone="indigo" icon={<AppIcons.FIP className="h-8 w-8" />} />
+          <Kpi title="FIU" value={stats.byFIU.toLocaleString()} tone="sky" icon={<AppIcons.FIU className="h-8 w-8" />} />
         </div>
 
         <Card className="relative p-4 md:p-5">
@@ -354,11 +355,11 @@ export default function CREntitiesMock() {
                       {startIdx + i + 1}
                     </td>
                     <td className="px-3 py-3">{r.name}</td>
-                    <td className="px-3 py-3 font-mono text-[13px]">{r.cr_id}</td>
+                    <td className="px-3 py-3 font-mono text-sm">{r.cr_id}</td>
                     <td className="px-3 py-3">
                       <TypeBadge type={r.type} />
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3">
                       <div className="flex items-center justify-center gap-1.5">
                         {/* View */}
                         <Button

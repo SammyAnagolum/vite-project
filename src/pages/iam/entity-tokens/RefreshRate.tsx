@@ -235,36 +235,31 @@ export default function RefreshRate() {
   );
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto max-w-7xl p-6">
-        <div className="mb-6">
-          <div className="mb-1 text-sm font-medium text-muted-foreground">Entity Tokens</div>
-          <h1 className="text-2xl font-semibold tracking-tight">Refresh Rate</h1>
-        </div>
-
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-7xl py-6">
         {/* KPIs */}
         {!selectedEntity && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi
-              icon={<TrendingUp className="h-5 w-5" />}
+              icon={<TrendingUp className="h-8 w-8" />}
               title="High Volume (>5)"
               value={kpis.highVolume}
               tone="emerald"
             />
             <Kpi
-              icon={<Clock className="h-5 w-5" />}
+              icon={<Clock className="h-8 w-8" />}
               title="Inactive (24h+)"
               value={kpis.inactive24h}
               tone="amber"
             />
             <Kpi
-              icon={<BarChart3 className="h-5 w-5" />}
+              icon={<BarChart3 className="h-8 w-8" />}
               title="Total Tokens Issued"
               value={kpis.totalIssued}
               tone="indigo"
             />
             <Kpi
-              icon={<Activity className="h-5 w-5" />}
+              icon={<Activity className="h-8 w-8" />}
               title="Avg Tokens/Entity"
               value={kpis.avgPerEntity}
               tone="sky"
@@ -376,7 +371,7 @@ export default function RefreshRate() {
                             {r.entity_name}
                           </button>
                         </td>
-                        <td className="px-3 py-3 font-mono text-[13px]">{r.entity_id}</td>
+                        <td className="px-3 py-3 font-mono text-sm">{r.entity_id}</td>
                         <td className="px-3 py-3">{r.recent_timestamp}</td>
                         <td className="px-3 py-3 text-right tabular-nums">{r.tokens_issued}</td>
                         <td className="px-3 py-3 text-right tabular-nums">{r.tokens_not_issued}</td>

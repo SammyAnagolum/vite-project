@@ -154,13 +154,8 @@ export default function ExecuteReports() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto max-w-7xl p-6">
-        <div className="mb-6">
-          <div className="mb-1 text-sm font-medium text-muted-foreground">Reports</div>
-          <h1 className="text-2xl font-semibold tracking-tight">Execute Reports</h1>
-        </div>
-
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-7xl py-6">
         <Card className="p-4 md:p-5">
           {/* Filters */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">

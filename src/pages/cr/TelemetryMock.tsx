@@ -20,6 +20,7 @@ import {
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
+import { AppIcons } from "@/lib/icon-map";
 
 /** -------- Types -------- */
 type EntityType = "AA" | "FIP" | "FIU";
@@ -226,14 +227,14 @@ export default function CRTelemetryMock() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="mx-auto max-w-7xl p-6">
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-7xl py-6">
         {/* KPI cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi title="Total Calls (filtered date)" value={kpis.total.toLocaleString()} />
-          <Kpi title="AA active" value={kpis.activeAA.toLocaleString()} tone="indigo" />
-          <Kpi title="FIP active" value={kpis.activeFIP.toLocaleString()} tone="sky" />
-          <Kpi title="FIU active" value={kpis.activeFIU.toLocaleString()} tone="emerald" />
+          <Kpi title="Total Calls (filtered date)" value={kpis.total.toLocaleString()} icon={<AppIcons.Activity className="h-8 w-8" />} />
+          <Kpi title="AA active" value={kpis.activeAA.toLocaleString()} tone="indigo" icon={<AppIcons.AA className="h-8 w-8" />} />
+          <Kpi title="FIP active" value={kpis.activeFIP.toLocaleString()} tone="sky" icon={<AppIcons.FIP className="h-8 w-8" />} />
+          <Kpi title="FIU active" value={kpis.activeFIU.toLocaleString()} tone="emerald" icon={<AppIcons.FIU className="h-8 w-8" />} />
         </div>
 
         <Card className="relative p-4 md:p-5">
@@ -356,7 +357,7 @@ export default function CRTelemetryMock() {
                           {(r as RowMain).name}
                         </button>
                       </td>
-                      <td className="px-3 py-3 font-mono text-[13px]">{(r as RowMain).entity_id}</td>
+                      <td className="px-3 py-3 font-mono text-sm">{(r as RowMain).entity_id}</td>
                       <td className="px-3 py-3">
                         <TypeBadge type={(r as RowMain).type} />
                       </td>
