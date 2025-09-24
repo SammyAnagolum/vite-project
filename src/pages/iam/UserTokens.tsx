@@ -130,10 +130,10 @@ export default function UserTokens() {
       <div className="mx-auto max-w-7xl py-6">
         {/* KPI Cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi icon={<Users className="h-8 w-8" />} title="Total Users" value={kpis.totalUsers} tone="indigo" />
-          <Kpi icon={<TrendingUp className="h-8 w-8" />} title="High Volume" value={kpis.highVolume} tone="emerald" />
-          <Kpi icon={<BadgeCheck className="h-8 w-8" />} title="Total Tokens Issued" value={kpis.totalTokens} tone="sky" />
-          <Kpi icon={<Clock className="h-8 w-8" />} title="Avg Tokens/User" value={kpis.avg} tone="amber" />
+          <Kpi icon={<Users className="h-9 w-9" />} title="Total Users" value={kpis.totalUsers} tone="indigo" />
+          <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume" value={kpis.highVolume} tone="emerald" />
+          <Kpi icon={<BadgeCheck className="h-9 w-9" />} title="Total Tokens Issued" value={kpis.totalTokens} tone="sky" />
+          <Kpi icon={<Clock className="h-9 w-9" />} title="Avg Tokens/User" value={kpis.avg} tone="amber" />
         </div>
 
         <Card className="p-4 md:p-5">

@@ -231,10 +231,10 @@ export default function CRTelemetryMock() {
       <div className="mx-auto max-w-7xl py-6">
         {/* KPI cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi title="Total Calls (filtered date)" value={kpis.total.toLocaleString()} icon={<AppIcons.Activity className="h-8 w-8" />} />
-          <Kpi title="AA active" value={kpis.activeAA.toLocaleString()} tone="indigo" icon={<AppIcons.AA className="h-8 w-8" />} />
-          <Kpi title="FIP active" value={kpis.activeFIP.toLocaleString()} tone="sky" icon={<AppIcons.FIP className="h-8 w-8" />} />
-          <Kpi title="FIU active" value={kpis.activeFIU.toLocaleString()} tone="emerald" icon={<AppIcons.FIU className="h-8 w-8" />} />
+          <Kpi title="Total Calls (filtered date)" value={kpis.total.toLocaleString()} icon={<AppIcons.Activity className="h-9 w-9" />} />
+          <Kpi title="AA active" value={kpis.activeAA.toLocaleString()} tone="indigo" icon={<AppIcons.AA className="h-9 w-9" />} />
+          <Kpi title="FIP active" value={kpis.activeFIP.toLocaleString()} tone="sky" icon={<AppIcons.FIP className="h-9 w-9" />} />
+          <Kpi title="FIU active" value={kpis.activeFIU.toLocaleString()} tone="emerald" icon={<AppIcons.FIU className="h-9 w-9" />} />
         </div>
 
         <Card className="relative p-4 md:p-5">

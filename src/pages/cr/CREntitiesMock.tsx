@@ -275,10 +275,10 @@ export default function CREntitiesMock() {
       <div className="mx-auto max-w-7xl py-6">
         {/* KPI cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi title="Total (filtered)" value={stats.total.toLocaleString()} icon={<AppIcons.Users className="h-8 w-8" />} />
-          <Kpi title="AA" value={stats.byAA.toLocaleString()} tone="emerald" icon={<AppIcons.AA className="h-8 w-8" />} />
-          <Kpi title="FIP" value={stats.byFIP.toLocaleString()} tone="indigo" icon={<AppIcons.FIP className="h-8 w-8" />} />
-          <Kpi title="FIU" value={stats.byFIU.toLocaleString()} tone="sky" icon={<AppIcons.FIU className="h-8 w-8" />} />
+          <Kpi title="Total (filtered)" value={stats.total.toLocaleString()} icon={<AppIcons.Users className="h-9 w-9" />} />
+          <Kpi title="AA" value={stats.byAA.toLocaleString()} tone="emerald" icon={<AppIcons.AA className="h-9 w-9" />} />
+          <Kpi title="FIP" value={stats.byFIP.toLocaleString()} tone="indigo" icon={<AppIcons.FIP className="h-9 w-9" />} />
+          <Kpi title="FIU" value={stats.byFIU.toLocaleString()} tone="sky" icon={<AppIcons.FIU className="h-9 w-9" />} />
         </div>
 
         <Card className="relative p-4 md:p-5">

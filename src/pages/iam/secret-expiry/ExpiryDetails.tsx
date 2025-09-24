@@ -158,10 +158,10 @@ export default function SecretExpiryDetails() {
       <div className="mx-auto max-w-7xl py-6">
         {/* KPI cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi title="Already Expired" value={kpis.expired} tone="red" icon={<AppIcons.TriangleAlert className="h-8 w-8" />} />
-          <Kpi title="Expiring ≤ 10 days" value={kpis.soon} tone="amber" icon={<AppIcons.CalendarClock className="h-8 w-8" />} />
-          <Kpi title="Reset (last 24h)" value={kpis.reset24h} tone="sky" icon={<AppIcons.RefreshCcw className="h-8 w-8" />} />
-          <Kpi title="Most Expired Type" value={kpis.mostExpiredType} tone="indigo" icon={<AppIcons.ShieldAlert className="h-8 w-8" />} />
+          <Kpi title="Already Expired" value={kpis.expired} tone="red" icon={<AppIcons.TriangleAlert className="h-9 w-9" />} />
+          <Kpi title="Expiring ≤ 10 days" value={kpis.soon} tone="amber" icon={<AppIcons.CalendarClock className="h-9 w-9" />} />
+          <Kpi title="Reset (last 24h)" value={kpis.reset24h} tone="sky" icon={<AppIcons.RefreshCcw className="h-9 w-9" />} />
+          <Kpi title="Most Expired Type" value={kpis.mostExpiredType} tone="indigo" icon={<AppIcons.ShieldAlert className="h-9 w-9" />} />
         </div>
 
         <Card className="relative p-4 md:p-5">
@@ -295,7 +295,7 @@ export default function SecretExpiryDetails() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-9 w-9"
                   onClick={() => setPage(1)}
                   disabled={page === 1}
                   aria-label="First page"
@@ -305,7 +305,7 @@ export default function SecretExpiryDetails() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-9 w-9"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                   aria-label="Previous page"
@@ -318,7 +318,7 @@ export default function SecretExpiryDetails() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-9 w-9"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                   aria-label="Next page"
@@ -328,7 +328,7 @@ export default function SecretExpiryDetails() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-9 w-9"
                   onClick={() => setPage(totalPages)}
                   disabled={page === totalPages}
                   aria-label="Last page"

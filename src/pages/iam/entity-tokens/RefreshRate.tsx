@@ -241,25 +241,25 @@ export default function RefreshRate() {
         {!selectedEntity && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi
-              icon={<TrendingUp className="h-8 w-8" />}
+              icon={<TrendingUp className="h-9 w-9" />}
               title="High Volume (>5)"
               value={kpis.highVolume}
               tone="emerald"
             />
             <Kpi
-              icon={<Clock className="h-8 w-8" />}
+              icon={<Clock className="h-9 w-9" />}
               title="Inactive (24h+)"
               value={kpis.inactive24h}
               tone="amber"
             />
             <Kpi
-              icon={<BarChart3 className="h-8 w-8" />}
+              icon={<BarChart3 className="h-9 w-9" />}
               title="Total Tokens Issued"
               value={kpis.totalIssued}
               tone="indigo"
             />
             <Kpi
-              icon={<Activity className="h-8 w-8" />}
+              icon={<Activity className="h-9 w-9" />}
               title="Avg Tokens/Entity"
               value={kpis.avgPerEntity}
               tone="sky"
