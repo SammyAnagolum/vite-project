@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bell, HelpCircle, LogOut, Settings, User, Search as SearchIcon } from "lucide-react";
+import ModeToggle from "../common/ModeToggle";
 
 const ACRONYMS: Record<string, string> = {
   cr: "CR",
@@ -75,6 +76,8 @@ export default function HeaderBar() {
         // onKeyDown={(e) => e.key === 'k' && openCommandPalette()}
         />
       </div>
+
+      <ModeToggle />
 
       {/* Environment pill */}
       <span className="hidden rounded-md border px-2 py-1 text-xs text-muted-foreground md:inline">

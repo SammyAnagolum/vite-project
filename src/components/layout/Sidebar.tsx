@@ -11,16 +11,12 @@ function branchHasActiveDescendant(node: NavNode, pathname: string): boolean {
   return (node.children ?? []).some((c) => branchHasActiveDescendant(c, pathname));
 }
 
-
 export default function Sidebar() {
   return (
     <aside className="hidden w-[260px] shrink-0 border-r bg-sidebar/50 lg:block">
-      {/* <div className="flex h-14 items-center border-b px-4">
-
-      </div> */}
       <NavLink to="/">
         <div className="sticky top-0 z-10 border-b bg-sidebar/70 px-4 py-3 h-14 flex items-center justify-between backdrop-blur">
-          <BrandLogo variant="horizontal" className="h-28 w-auto" />
+          <BrandLogo variant="horizontal" className="h-10 w-auto py-1 px-3 rounded-lg" />
           <span className="block text-sm font-semibold">Ops Console</span>
         </div>
       </NavLink>
@@ -61,7 +57,7 @@ function NavBranch({ node, depth }: { node: NavNode; depth: number }) {
           <node.icon
             className={cn(
               "h-4 w-4 transition-colors",
-              isActiveLeaf ? "text-blue-500/80" : "text-muted-foreground/80"
+              isActiveLeaf ? "text-blue-500/80 dark:text-blue-300" : "text-muted-foreground/80"
             )}
           />
         )}
@@ -86,7 +82,7 @@ function NavBranch({ node, depth }: { node: NavNode; depth: number }) {
           <node.icon
             className={cn(
               "h-4 w-4 transition-colors",
-              isAncestorActive ? "text-blue-300" : "text-muted-foreground/80"
+              isAncestorActive ? "text-blue-300 dark:text-blue-500/80" : "text-muted-foreground/80"
             )}
           />
         )}

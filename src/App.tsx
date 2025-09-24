@@ -9,6 +9,7 @@ import EntitiesPage from "./pages/cr/EnititiesPage";
 import RefreshRatePage from "./pages/iam/entity-tokens/RefreshRatePage";
 import GeneratedReportsPage from "./pages/reports/GeneratedReportsPage";
 import ExecuteReportsPage from "./pages/reports/ExecuteReportsPage";
+import PreferencesPage from "./pages/settings/PreferencesPage";
 
 function Fallback() {
   return (
@@ -39,10 +40,13 @@ export default function App() {
           <Route path="/iam/entity-tokens/refresh-rate" element={<RefreshRatePage />} />
           <Route path="/iam/user-tokens" element={<UserTokensPage />} />
 
-          {/* Reports (placeholder) */}
+          {/* Reports */}
           <Route path="/reports" element={<Navigate to="/reports/execute-reports" replace />} />
           <Route path="/reports/execute-reports" element={<ExecuteReportsPage />} />
           <Route path="/reports/generated-reports" element={<><GeneratedReportsPage /></>} />
+
+          {/* Settings */}
+          <Route path="/settings" element={<PreferencesPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Route>
