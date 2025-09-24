@@ -29,24 +29,25 @@ type Row = {
   name: string;
   id: string;
   type: EntityType;
-  expiryDate: string | null; // ISO Date (YYYY-MM-DD) or null
+  /** IST local time in "YYYY-MM-DD HH:mm:ss" or null */
+  expiryDate: string | null;
 };
 
 /** ------------ Mock (mixed future/past) ------------ */
 const MOCK: Row[] = [
-  { name: "test Laboratories India Private Limited", id: "test-fip-10", type: "FIP", expiryDate: "2025-07-29" },
-  { name: "AA-SIMULATOR-2", id: "AA-SIMULATOR-2", type: "AA", expiryDate: "2025-04-01" },
-  { name: "FIP-SIMULATOR-29", id: "FIP-SIMULATOR-33", type: "FIP", expiryDate: "2025-10-12" },
-  { name: "FIU-SIMULATOR", id: "afpl-FIU", type: "FIU", expiryDate: "2025-03-23" },
-  { name: "FIP-BANK-HDFC", id: "HDFC-FIP-001", type: "FIP", expiryDate: "2025-08-15" },
-  { name: "FIU-BANK-ICICI", id: "ICICI-FIU-001", type: "FIU", expiryDate: "2025-09-01" },
-  { name: "AA-BANK-SBI", id: "SBI-AA-001", type: "AA", expiryDate: "2025-03-15" },
-  { name: "FIU-KOTAK-BANK", id: "KOTAK-FIU-001", type: "FIU", expiryDate: "2025-08-30" },
-  { name: "AA-FINVU", id: "FINVU-AA-001", type: "AA", expiryDate: "2025-02-28" },
-  { name: "FIU-INDUSIND", id: "INDUSIND-FIU-001", type: "FIU", expiryDate: "2025-07-20" },
-  { name: "AA-PERFIOS", id: "PERFIOS-AA-001", type: "AA", expiryDate: "2025-11-01" },
-  { name: "FIP-BOI", id: "BOI-FIP-001", type: "FIP", expiryDate: "2025-06-30" },
-  { name: "AA-ONEMONEY", id: "ONEMONEY-AA-001", type: "AA", expiryDate: "2025-09-15" },
+  { name: "test Laboratories India Private Limited", id: "test-fip-10", type: "FIP", expiryDate: "2025-07-29 14:22:07" },
+  { name: "AA-SIMULATOR-2", id: "AA-SIMULATOR-2", type: "AA", expiryDate: "2025-04-01 09:45:12" },
+  { name: "FIP-SIMULATOR-29", id: "FIP-SIMULATOR-33", type: "FIP", expiryDate: "2025-10-12 18:05:33" },
+  { name: "FIU-SIMULATOR", id: "afpl-FIU", type: "FIU", expiryDate: "2025-03-23 02:10:05" },
+  { name: "FIP-BANK-HDFC", id: "HDFC-FIP-001", type: "FIP", expiryDate: "2025-08-15 16:30:00" },
+  { name: "FIU-BANK-ICICI", id: "ICICI-FIU-001", type: "FIU", expiryDate: "2025-09-01 11:12:45" },
+  { name: "AA-BANK-SBI", id: "SBI-AA-001", type: "AA", expiryDate: "2025-03-15 07:00:00" },
+  { name: "FIU-KOTAK-BANK", id: "KOTAK-FIU-001", type: "FIU", expiryDate: "2025-08-30 23:59:59" },
+  { name: "AA-FINVU", id: "FINVU-AA-001", type: "AA", expiryDate: "2025-02-28 12:00:00" },
+  { name: "FIU-INDUSIND", id: "INDUSIND-FIU-001", type: "FIU", expiryDate: "2025-07-20 06:30:30" },
+  { name: "AA-PERFIOS", id: "PERFIOS-AA-001", type: "AA", expiryDate: "2025-11-01 08:15:00" },
+  { name: "FIP-BOI", id: "BOI-FIP-001", type: "FIP", expiryDate: "2025-06-30 20:45:05" },
+  { name: "AA-ONEMONEY", id: "ONEMONEY-AA-001", type: "AA", expiryDate: "2025-09-15 13:10:10" },
 ];
 
 export default function SecretExpiryDetails() {
@@ -54,8 +55,8 @@ export default function SecretExpiryDetails() {
   const [qName, setQName] = useState("");
   const [qId, setQId] = useState("");
   const [qType, setQType] = useState<"all" | EntityType>("all");
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
+  const [fromDate, setFromDate] = useState<string>(""); // YYYY-MM-DD
+  const [toDate, setToDate] = useState<string>("");     // YYYY-MM-DD
 
   // table paging
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
@@ -72,21 +73,20 @@ export default function SecretExpiryDetails() {
       const byId = !iq || r.id.toLowerCase().includes(iq);
       const byType = qType === "all" || r.type === qType;
 
-      const byRange = ((): boolean => {
+      const byRange = (() => {
         if (!fromDate && !toDate) return true;
         if (!r.expiryDate) return false;
-        const d = new Date(r.expiryDate);
-        d.setHours(0, 0, 0, 0);
-        if (fromDate) {
-          const f = new Date(fromDate);
-          f.setHours(0, 0, 0, 0);
-          if (d < f) return false;
-        }
-        if (toDate) {
-          const t = new Date(toDate);
-          t.setHours(23, 59, 59, 999); // inclusive
-          if (d > t) return false;
-        }
+
+        // Parse the actual expiry moment in IST
+        const expiry = parseISTLocalDateTime(r.expiryDate); // Date
+        if (Number.isNaN(expiry.getTime())) return false;
+
+        // Build inclusive range in IST
+        const from = fromDate ? istMidnightStart(fromDate) : null;           // 00:00:00.000 IST
+        const to = toDate ? istMidnightEnd(toDate) : null;                   // 23:59:59.999 IST
+
+        if (from && expiry < from) return false;
+        if (to && expiry > to) return false;
         return true;
       })();
 
@@ -94,8 +94,8 @@ export default function SecretExpiryDetails() {
     })
       .map((r) => ({
         ...r,
-        expiresIn: r.expiryDate ? daysUntil(r.expiryDate) : Number.NaN,
-        expiryDateFmt: r.expiryDate ?? "Not Available",
+        expiresIn: r.expiryDate ? daysUntilIST(r.expiryDate) : Number.NaN,
+        expiryDateFmt: r.expiryDate ? formatIST(r.expiryDate) : "Not Available",
       }))
       .sort((a, b) => {
         // Sort by "Expires In" ascending, pushing N/A to bottom
@@ -141,7 +141,7 @@ export default function SecretExpiryDetails() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
   const downloadCsv = () => {
-    const header = ["S.NO", "Entity Name", "Entity ID", "Type", "Expiry Date", "Expires In"];
+    const header = ["S.NO", "Entity Name", "Entity ID", "Type", "Expiry Date (IST)", "Expires In (days)"];
     const rows = filtered.map((r, i) => [
       String(i + 1),
       r.name,
@@ -228,7 +228,7 @@ export default function SecretExpiryDetails() {
                   <th>Entity Name</th>
                   <th>Entity ID</th>
                   <th className="w-[120px]">Type</th>
-                  <th className="w-[160px]">Expiry Date</th>
+                  <th className="w-[200px]">Expiry Date (IST)</th>
                   <th className="w-[140px] text-right">Expires In</th>
                 </tr>
               </thead>
@@ -256,7 +256,8 @@ export default function SecretExpiryDetails() {
                 {pageRows.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-3 py-12 text-center">
-                      <EmptyState message="No records match your filters" />
+                      {/* Use the prop your EmptyState expects: text or message */}
+                      <EmptyState message="No records match your filters." />
                     </td>
                   </tr>
                 )}
@@ -358,14 +359,59 @@ function TypeBadge({ type }: { type: EntityType }) {
   );
 }
 
-/** ------------ utils ------------ */
-function daysUntil(isoDate: string): number {
-  const d = new Date(isoDate);
-  if (isNaN(d.getTime())) return Number.NaN;
-  const today = new Date();
-  d.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  return Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+/** ------------ IST helpers & utils ------------ */
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** Parse "YYYY-MM-DD HH:mm:ss" as IST (+05:30). */
+function parseISTLocalDateTime(s: string): Date {
+  return new Date(`${s.replace(" ", "T")}+05:30`);
+}
+
+/** Build IST midnight start from a YYYY-MM-DD string. */
+function istMidnightStart(ymd: string): Date {
+  return new Date(`${ymd}T00:00:00.000+05:30`);
+}
+
+/** Build IST end-of-day from a YYYY-MM-DD string (inclusive). */
+function istMidnightEnd(ymd: string): Date {
+  return new Date(`${ymd}T23:59:59.999+05:30`);
+}
+
+/** Format a "YYYY-MM-DD HH:mm:ss" IST string → localized human string (IST). */
+function formatIST(s: string): string {
+  const d = parseISTLocalDateTime(s);
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(d);
+}
+
+/** Days until expiry, computed at IST midnight boundaries. */
+function daysUntilIST(isoLocalIST: string): number {
+  const expiry = parseISTLocalDateTime(isoLocalIST);
+
+  // Today in IST
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const istNow = new Date(utcMs + 330 * 60000);
+
+  const todayY = istNow.getFullYear();
+  const todayM = pad2(istNow.getMonth() + 1);
+  const todayD = pad2(istNow.getDate());
+
+  const startTodayIST = new Date(`${todayY}-${todayM}-${todayD}T00:00:00+05:30`);
+  const expY = expiry.getFullYear();
+  const expM = pad2(expiry.getMonth() + 1);
+  const expD = pad2(expiry.getDate());
+  const startExpiryIST = new Date(`${expY}-${expM}-${expD}T00:00:00+05:30`);
+
+  return Math.ceil((startExpiryIST.getTime() - startTodayIST.getTime()) / 86400000);
 }
 
 function toCsvAndDownload(matrix: (string | number)[][], filename: string) {
