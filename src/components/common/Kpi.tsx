@@ -66,7 +66,7 @@ export default function Kpi({
 }) {
   const t = toneMap[tone];
   return (
-    <div className={`rounded-xl border border-border p-4 ring-1 ${t.card}`}>
+    <div className={`rounded-xl border border-border px-4 ring-1 ${t.card}`}>
       <div className="flex items-center gap-3">
         {icon && (
           <div className={`rounded-lg p-2 ${t.iconWrap}`}>
@@ -74,7 +74,7 @@ export default function Kpi({
             <div className={t.icon}>{icon}</div>
           </div>
         )}
-        <div>
+        <div className="py-4">
           <div className="text-sm font-medium text-muted-foreground">{title}</div>
           <div className="mt-0.5 text-2xl font-semibold tabular-nums">{value}</div>
         </div>

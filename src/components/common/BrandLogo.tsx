@@ -1,5 +1,7 @@
 // src/components/common/BrandLogo.tsx
-import { LogoHoriz, LogoVert, LogoMark } from "@/lib/brand";
+import { LogoHoriz, LogoVert, LogoMark, LogoHorizDark } from "@/lib/brand";
+import { useTheme } from "@/providers/theme/use-theme";
+
 
 type Variant = "horizontal" | "vertical" | "mark";
 
@@ -8,7 +10,8 @@ export default function BrandLogo({
   className = "",
   alt = "Sahamati",
 }: { variant?: Variant; className?: string; alt?: string }) {
-  const src = variant === "vertical" ? LogoVert : variant === "mark" ? LogoMark : LogoHoriz;
+  const theme = useTheme();
+  const src = variant === "vertical" ? LogoVert : variant === "mark" ? LogoMark : theme.theme === "dark" ? LogoHorizDark : LogoHoriz;
   return (
     <img
       src={src}
