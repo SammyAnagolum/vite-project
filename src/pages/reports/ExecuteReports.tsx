@@ -14,6 +14,8 @@ import { Play, RefreshCcw, Search, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 // wire your real API here
 import { useReportsApi } from "@/services/reportsApi"; // fetchDashboards, generateReport
+import type { DataTableColumn } from "@/components/common/DataTable";
+import DataTable from "@/components/common/DataTable";
 
 type Dashboard = {
   id: string;
@@ -36,8 +38,8 @@ export default function ExecuteReports() {
 
   // data
   const [rows, setRows] = useState<Dashboard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
+  const [, setLoading] = useState(true);
+  const [, setErr] = useState<string | null>(null);
 
   // filters/search
   const [q, setQ] = useState("");
@@ -153,6 +155,31 @@ export default function ExecuteReports() {
     }
   };
 
+  const cols: DataTableColumn<Dashboard>[] = [
+    { key: "name", header: "Name", cell: (r) => <span className="font-medium">{r.name}</span> },
+    { key: "created", header: "Created By", headClassName: "w-[200px]", cell: (r) => r.createdBy },
+    { key: "modified", header: "Modified At", headClassName: "w-[220px]", cell: (r) => r.modifiedAt },
+    {
+      key: "actions",
+      header: <span className="block text-center">Actions</span>,
+      headClassName: "w-[120px]",
+      className: "text-center",
+      cell: (r) => (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" onClick={() => openGenerateDialog(r)}>
+                <Play className="mr-2 h-4 w-4" />
+                Generate
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Generate this report</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ),
+    },
+  ];
+
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-7xl py-6">
@@ -182,50 +209,13 @@ export default function ExecuteReports() {
           </div>
 
           {/* Table */}
-          <div className="relative overflow-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-background/80 backdrop-blur">
-                <tr className="border-b border-border [&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
-                  <th className="w-[48px] text-center">#</th>
-                  <th>Name</th>
-                  <th className="w-[200px]">Created By</th>
-                  <th className="w-[220px]">Modified At</th>
-                  <th className="w-[120px] text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="[&>tr]:border-b [&>tr]:border-border">
-                {loading ? (
-                  <tr><td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">Loading…</td></tr>
-                ) : err ? (
-                  <tr><td colSpan={5} className="px-3 py-10 text-center text-destructive">{err}</td></tr>
-                ) : pageRows.length === 0 ? (
-                  <tr><td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">No reports match your filters.</td></tr>
-                ) : (
-                  pageRows.map((r, i) => (
-                    <tr key={r.id} className="odd:bg-muted/40 hover:bg-accent transition-colors">
-                      <td className="px-3 py-3 text-center tabular-nums">{startIdx + i + 1}</td>
-                      <td className="px-3 py-3 font-medium">{r.name}</td>
-                      <td className="px-3 py-3">{r.createdBy}</td>
-                      <td className="px-3 py-3">{r.modifiedAt}</td>
-                      <td className="px-3 py-3 text-center">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button size="sm" onClick={() => openGenerateDialog(r)}>
-                                <Play className="mr-2 h-4 w-4" />
-                                Generate
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Generate this report</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable<Dashboard>
+            data={pageRows}
+            columns={cols}
+            showIndex
+            startIndex={startIdx}
+            emptyMessage="No users match your filters."
+          />
 
           {/* Footer */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

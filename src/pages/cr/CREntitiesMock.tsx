@@ -42,9 +42,10 @@ import {
 import { Section } from "@/components/common/Section";
 import { KV } from "@/components/common/KV";
 import Kpi from "@/components/common/Kpi";
-import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
 import { AppIcons } from "@/lib/icon-map";
+import type { DataTableColumn } from "@/components/common/DataTable";
+import DataTable from "@/components/common/DataTable";
 
 /** ------------------------------------ Types ------------------------------------ */
 type Row = { name: string; cr_id: string; type: "AA" | "FIP" | "FIU" };
@@ -270,6 +271,31 @@ export default function CREntitiesMock() {
     };
   }, [selected]);
 
+  const cols: DataTableColumn<Row>[] = [
+    { key: "name", header: "Entity Name", cell: r => r.name },
+    { key: "id", header: "Entity ID", cell: r => <span className="font-mono text-sm">{r.cr_id}</span> },
+    { key: "type", header: "Type", headClassName: "w-[120px]", cell: r => <TypeBadge type={r.type} /> },
+    {
+      key: "actions",
+      header: <span className="block text-center">Actions</span>,
+      headClassName: "w-[140px]",
+      className: "text-center",
+      cell: r => (
+        <div className="flex items-center justify-center gap-1.5">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => openView(r)} aria-label="View">
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20" onClick={() => openEdit(r)} aria-label="Edit">
+            <PencilLine className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => openDelete(r)} aria-label="Delete">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="">
       <div className="mx-auto max-w-7xl py-6">
@@ -334,82 +360,13 @@ export default function CREntitiesMock() {
           </div>
 
           {/* Table */}
-          <div className="relative overflow-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-[0_1px_0_var(--color-border)]">
-                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium [&>th]:text-left">
-                  <th className="w-[80px] text-center">S.NO</th>
-                  <th>Entity Name</th>
-                  <th>Entity ID</th>
-                  <th className="w-[120px]">Type</th>
-                  <th className="w-[140px] text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="[&>tr]:border-b [&>tr]:border-border">
-                {pageRows.map((r, i) => (
-                  <tr
-                    key={`${r.cr_id}-${i}`}
-                    className="odd:bg-muted/40 hover:bg-accent transition-colors"
-                  >
-                    <td className="px-3 py-3 text-center tabular-nums">
-                      {startIdx + i + 1}
-                    </td>
-                    <td className="px-3 py-3">{r.name}</td>
-                    <td className="px-3 py-3 font-mono text-sm">{r.cr_id}</td>
-                    <td className="px-3 py-3">
-                      <TypeBadge type={r.type} />
-                    </td>
-                    <td className="px-3">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {/* View */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`View ${r.name}`}
-                          className="h-8 w-8 text-primary hover:bg-primary/10"
-                          onClick={() => openView(r)}
-                          title="View details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-
-                        {/* Edit */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Edit ${r.name}`}
-                          className="h-8 w-8 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                          onClick={() => openEdit(r)}
-                          title="Edit"
-                        >
-                          <PencilLine className="h-4 w-4" />
-                        </Button>
-
-                        {/* Delete */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Delete ${r.name}`}
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                          onClick={() => openDelete(r)}
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {pageRows.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-12 text-center">
-                      <EmptyState message="No entities match your filters" />
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable<Row>
+            data={pageRows}
+            columns={cols}
+            showIndex
+            indexHeader="S.NO"
+            startIndex={startIdx}
+          />
 
           {/* Footer: Download + Pagination */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

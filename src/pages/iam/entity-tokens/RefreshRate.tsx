@@ -1,4 +1,3 @@
-// src/pages/iam/entity-tokens/RefreshRate.tsx
 import React, { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +27,7 @@ import {
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
+import DataTable, { type DataTableColumn } from "@/components/common/DataTable";
 
 /** ---------------- Types ---------------- */
 type DetailRow = {
@@ -44,10 +44,7 @@ type EntityRow = {
   details: DetailRow[];           // per-day details (mocked)
 };
 
-/** ---------------- Mock Data ----------------
- * Each entity has a few daily rows. We'll aggregate by the selected date
- * for the main table, and show full-by-day breakdown in the detail view.
- */
+/** ---------------- Mock Data ---------------- */
 const MOCK: EntityRow[] = [
   {
     entity_name: "AA-SIMULATOR",
@@ -141,7 +138,16 @@ export default function RefreshRate() {
   useEffect(() => setPage(1), [selectedDate, qName, qId, rowsPerPage]);
 
   // Aggregate for the main table by selected date
-  const aggregated = useMemo(() => {
+  type AggregatedRow = {
+    entity_name: string;
+    entity_id: string;
+    recent_timestamp: string | "-";
+    tokens_issued: number;
+    tokens_not_issued: number;
+    tokens_total: number;
+  };
+
+  const aggregated = useMemo<AggregatedRow[]>(() => {
     const nameQ = qName.trim().toLowerCase();
     const idQ = qId.trim().toLowerCase();
 
@@ -173,10 +179,9 @@ export default function RefreshRate() {
     const totalIssued = aggregated.reduce((s, r) => s + r.tokens_issued, 0);
     const avgPerEntity = aggregated.length ? Math.round(totalIssued / aggregated.length) : 0;
     const inactive24h = MOCK.filter((r) => {
-      // "inactive 24h+" means latest known timestamp is >24h away from selectedDate
       const last = r.recent_timestamp !== "-" ? r.recent_timestamp : "";
       if (!last) return true;
-      const lastDate = new Date(last.replace(" ", "T")); // assume local parse ok
+      const lastDate = new Date(last.replace(" ", "T"));
       const sel = new Date(`${selectedDate}T00:00:00`);
       const diffHrs = Math.abs(+sel - +lastDate) / 36e5;
       return diffHrs > 24;
@@ -228,11 +233,65 @@ export default function RefreshRate() {
     URL.revokeObjectURL(url);
   };
 
-  // detail entity (full per-day breakdown)
   const selectedEntity = useMemo(
     () => MOCK.find((e) => e.entity_id === selectedEntityId) || null,
     [selectedEntityId]
   );
+
+  // columns
+  const mainCols: DataTableColumn<AggregatedRow>[] = [
+    {
+      key: "name",
+      header: "Entity Name",
+      cell: (r) => (
+        <button
+          className="text-primary underline-offset-2 hover:underline"
+          onClick={() => setSelectedEntityId(r.entity_id)}
+        >
+          {r.entity_name}
+        </button>
+      ),
+    },
+    {
+      key: "id",
+      header: "Entity ID",
+      cell: (r) => <span className="font-mono text-sm">{r.entity_id}</span>,
+    },
+    {
+      key: "ts",
+      header: "Last Token Issued Timestamp",
+      headClassName: "w-[220px]",
+      cell: (r) => r.recent_timestamp,
+    },
+    {
+      key: "issued",
+      header: "Issued",
+      headClassName: "w-[140px]",
+      align: "right",
+      cell: (r) => r.tokens_issued,
+    },
+    {
+      key: "not",
+      header: "Not Issued",
+      headClassName: "w-[160px]",
+      align: "right",
+      cell: (r) => r.tokens_not_issued,
+    },
+    {
+      key: "total",
+      header: "Total",
+      headClassName: "w-[120px]",
+      align: "right",
+      cell: (r) => <span className="font-medium">{r.tokens_total}</span>,
+    },
+  ];
+
+  const detailCols: DataTableColumn<DetailRow>[] = [
+    { key: "date", header: "Date", cell: (r) => r.date },
+    { key: "i", header: "Tokens Issued", headClassName: "w-[160px]", align: "right", cell: (r) => r.tokens_issued },
+    { key: "ni", header: "Tokens Not Issued", headClassName: "w-[180px]", align: "right", cell: (r) => r.tokens_not_issued },
+    { key: "t", header: "Total", headClassName: "w-[140px]", align: "right", cell: (r) => <span className="font-medium">{r.tokens_total}</span> },
+  ];
 
   return (
     <div className="min-h-screen">
@@ -240,30 +299,10 @@ export default function RefreshRate() {
         {/* KPIs */}
         {!selectedEntity && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Kpi
-              icon={<TrendingUp className="h-9 w-9" />}
-              title="High Volume (>5)"
-              value={kpis.highVolume}
-              tone="emerald"
-            />
-            <Kpi
-              icon={<Clock className="h-9 w-9" />}
-              title="Inactive (24h+)"
-              value={kpis.inactive24h}
-              tone="amber"
-            />
-            <Kpi
-              icon={<BarChart3 className="h-9 w-9" />}
-              title="Total Tokens Issued"
-              value={kpis.totalIssued}
-              tone="indigo"
-            />
-            <Kpi
-              icon={<Activity className="h-9 w-9" />}
-              title="Avg Tokens/Entity"
-              value={kpis.avgPerEntity}
-              tone="sky"
-            />
+            <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume (>5)" value={kpis.highVolume} tone="emerald" />
+            <Kpi icon={<Clock className="h-9 w-9" />} title="Inactive (24h+)" value={kpis.inactive24h} tone="amber" />
+            <Kpi icon={<BarChart3 className="h-9 w-9" />} title="Total Tokens Issued" value={kpis.totalIssued} tone="indigo" />
+            <Kpi icon={<Activity className="h-9 w-9" />} title="Avg Tokens/Entity" value={kpis.avgPerEntity} tone="sky" />
           </div>
         )}
 
@@ -338,56 +377,18 @@ export default function RefreshRate() {
             </div>
           )}
 
-          {/* Table */}
+          {/* Table(s) */}
           {!selectedEntity ? (
             <>
-              <div className="relative overflow-auto rounded-lg border border-border">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 z-10 bg-background/80 backdrop-blur">
-                    <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium [&>th]:text-left border-b border-border">
-                      <th className="w-[80px] text-center">S.NO</th>
-                      <th>Entity Name</th>
-                      <th>Entity ID</th>
-                      <th className="w-[220px]">Last Token Issued Timestamp</th>
-                      <th className="w-[140px] text-right">Issued</th>
-                      <th className="w-[160px] text-right">Not Issued</th>
-                      <th className="w-[120px] text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="[&>tr]:border-b [&>tr]:border-border">
-                    {pageRows.map((r, i) => (
-                      <tr
-                        key={`${r.entity_id}-${i}`}
-                        className="odd:bg-muted/40 hover:bg-accent transition-colors"
-                      >
-                        <td className="px-3 py-3 text-center tabular-nums">
-                          {startIdx + i + 1}
-                        </td>
-                        <td className="px-3 py-3">
-                          <button
-                            className="text-primary underline-offset-2 hover:underline"
-                            onClick={() => setSelectedEntityId(r.entity_id)}
-                          >
-                            {r.entity_name}
-                          </button>
-                        </td>
-                        <td className="px-3 py-3 font-mono text-sm">{r.entity_id}</td>
-                        <td className="px-3 py-3">{r.recent_timestamp}</td>
-                        <td className="px-3 py-3 text-right tabular-nums">{r.tokens_issued}</td>
-                        <td className="px-3 py-3 text-right tabular-nums">{r.tokens_not_issued}</td>
-                        <td className="px-3 py-3 text-right font-medium tabular-nums">{r.tokens_total}</td>
-                      </tr>
-                    ))}
-                    {pageRows.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="px-3 py-12 text-center">
-                          <EmptyState message="No entities for the selected filters." />
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable<AggregatedRow>
+                data={pageRows}
+                columns={mainCols}
+                showIndex
+                indexHeader="S.NO"
+                startIndex={startIdx + 1}
+                emptyContent={<EmptyState message="No entities for the selected filters." />}
+                getRowKey={(r) => r.entity_id}
+              />
 
               {/* Footer */}
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -468,7 +469,7 @@ export default function RefreshRate() {
               </div>
             </>
           ) : (
-            <EntityDetailCard entity={selectedEntity} />
+            <EntityDetailCard entity={selectedEntity} detailCols={detailCols} />
           )}
         </Card>
       </div>
@@ -477,7 +478,13 @@ export default function RefreshRate() {
 }
 
 /** ---------------- Detail View ---------------- */
-function EntityDetailCard({ entity }: { entity: EntityRow | null }) {
+function EntityDetailCard({
+  entity,
+  detailCols,
+}: {
+  entity: EntityRow | null;
+  detailCols: DataTableColumn<DetailRow>[];
+}) {
   if (!entity) return null;
 
   const totals = entity.details.reduce(
@@ -493,6 +500,7 @@ function EntityDetailCard({ entity }: { entity: EntityRow | null }) {
   const download = () => {
     const header = ["S.NO", "Date", "Tokens Issued", "Tokens Not Issued", "Total Tokens"];
     const rows = entity.details
+      .slice()
       .sort((a, b) => (a.date < b.date ? 1 : -1))
       .map((d, i) => [
         String(i + 1),
@@ -520,40 +528,15 @@ function EntityDetailCard({ entity }: { entity: EntityRow | null }) {
         <MiniKpi label="Total" value={totals.total} />
       </div>
 
-      <div className="relative overflow-auto rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10 bg-background/80 backdrop-blur">
-            <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium [&>th]:text-left border-b border-border">
-              <th className="w-[80px] text-center">S.NO</th>
-              <th>Date</th>
-              <th className="w-[160px] text-right">Tokens Issued</th>
-              <th className="w-[180px] text-right">Tokens Not Issued</th>
-              <th className="w-[140px] text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody className="[&>tr]:border-b [&>tr]:border-border">
-            {entity.details
-              .slice()
-              .sort((a, b) => (a.date < b.date ? 1 : -1))
-              .map((d, i) => (
-                <tr key={`${entity.entity_id}-${d.date}`} className="odd:bg-muted/40">
-                  <td className="px-3 py-3 text-center tabular-nums">{i + 1}</td>
-                  <td className="px-3 py-3">{d.date}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{d.tokens_issued}</td>
-                  <td className="px-3 py-3 text-right tabular-nums">{d.tokens_not_issued}</td>
-                  <td className="px-3 py-3 text-right font-medium tabular-nums">{d.tokens_total}</td>
-                </tr>
-              ))}
-            {entity.details.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-3 py-12 text-center">
-                  <EmptyState message="No token activity for this entity." />
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable<DetailRow>
+        data={[...entity.details].sort((a, b) => (a.date < b.date ? 1 : -1))}
+        columns={detailCols}
+        showIndex
+        indexHeader="S.NO"
+        startIndex={1}
+        emptyContent={<EmptyState message="No token activity for this entity." />}
+        getRowKey={(r) => `${entity.entity_id}-${r.date}`}
+      />
 
       <div className="mt-4">
         <Button onClick={download}>

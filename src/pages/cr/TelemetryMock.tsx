@@ -21,6 +21,7 @@ import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
 import { AppIcons } from "@/lib/icon-map";
+import DataTable, { type DataTableColumn } from "@/components/common/DataTable";
 
 /** -------- Types -------- */
 type EntityType = "AA" | "FIP" | "FIU";
@@ -82,7 +83,6 @@ function generateTelemetry(seed = 7): { events: TelemetryEvent[]; lastByEntity: 
   for (const e of ENTITIES) {
     const activityDays = 6 + Math.floor(rng() * 8); // 6..13 days active in this window
     const activeSet = new Set<number>();
-    // choose random unique days to be "active"
     while (activeSet.size < activityDays) {
       activeSet.add(Math.floor(rng() * daysBack)); // 0..20
     }
@@ -90,10 +90,8 @@ function generateTelemetry(seed = 7): { events: TelemetryEvent[]; lastByEntity: 
       const d = new Date(today);
       d.setDate(today.getDate() - offset);
       const date = toISODate(d);
-      // 1..25 calls
       const call_count = 1 + Math.floor(rng() * 25);
       events.push({ entity_id: e.id, call_count, date });
-      // track last fetch time
       if (!lastByEntity[e.id] || lastByEntity[e.id] < date) {
         lastByEntity[e.id] = date;
       }
@@ -126,7 +124,6 @@ export default function CRTelemetryMock() {
 
   // derived, filtered main rows for selected date
   const rowsMain: RowMain[] = useMemo(() => {
-    // index entities for name/type and ensure every entity appears at least once
     const baseMap = new Map<string, RowMain>();
     ENTITIES.forEach((e) =>
       baseMap.set(e.id, {
@@ -138,7 +135,6 @@ export default function CRTelemetryMock() {
       })
     );
 
-    // tally for the chosen date
     events.forEach((ev) => {
       if (dateStr && ev.date !== dateStr) return;
       const row = baseMap.get(ev.entity_id);
@@ -146,7 +142,6 @@ export default function CRTelemetryMock() {
       row.call_count += ev.call_count;
     });
 
-    // filters
     let out = Array.from(baseMap.values());
     const nq = qName.trim().toLowerCase();
     const iq = qId.trim().toLowerCase();
@@ -176,7 +171,6 @@ export default function CRTelemetryMock() {
   // drill-in rows (per-date call counts for selected entity)
   const drillRows = useMemo(() => {
     if (!drillEntity) return [];
-    // group by date and sum
     const map = new Map<string, number>();
     events.forEach((ev) => {
       if (ev.entity_id !== drillEntity.id) return;
@@ -198,6 +192,59 @@ export default function CRTelemetryMock() {
   const pageRows = source.slice(startIdx, startIdx + rowsPerPage);
   const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
   const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
+
+  // table columns
+  type DrillRow = { date: string; call_count: number };
+
+  const mainCols: DataTableColumn<RowMain>[] = [
+    {
+      key: "name",
+      header: "Entity Name",
+      cell: (r) => (
+        <button
+          className="underline underline-offset-2 hover:opacity-90"
+          onClick={() => setDrillEntity({ id: r.entity_id, name: r.name })}
+        >
+          {r.name}
+        </button>
+      ),
+    },
+    {
+      key: "id",
+      header: "Entity ID",
+      cell: (r) => <span className="font-mono text-sm">{r.entity_id}</span>,
+    },
+    {
+      key: "type",
+      header: "Type",
+      headClassName: "w-[120px]",
+      cell: (r) => <TypeBadge type={r.type} />,
+    },
+    {
+      key: "recent",
+      header: "Recent Fetch Date",
+      headClassName: "w-[180px]",
+      cell: (r) => (r.recent_fetch_time === "-" ? "-" : r.recent_fetch_time),
+    },
+    {
+      key: "count",
+      header: "Fetch Count",
+      headClassName: "w-[140px]",
+      align: "right",
+      cell: (r) => r.call_count.toLocaleString(),
+    },
+  ];
+
+  const drillCols: DataTableColumn<DrillRow>[] = [
+    { key: "date", header: "Date", cell: (r) => r.date },
+    {
+      key: "count",
+      header: "Fetch Count",
+      headClassName: "w-[140px]",
+      align: "right",
+      cell: (r) => r.call_count.toLocaleString(),
+    },
+  ];
 
   // CSV download (context-aware: main vs drill)
   function downloadCsv() {
@@ -316,81 +363,28 @@ export default function CRTelemetryMock() {
             </div>
           )}
 
-          {/* Table */}
-          <div className="relative overflow-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 backdrop-blur bg-background/80">
-                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium [&>th]:text-left border-b border-border">
-                  {!drillEntity ? (
-                    <>
-                      <th className="w-[80px] text-center">S.NO</th>
-                      <th>Entity Name</th>
-                      <th>Entity ID</th>
-                      <th className="w-[120px]">Type</th>
-                      <th className="w-[180px]">Recent Fetch Date</th>
-                      <th className="w-[140px] text-right">Fetch Count</th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="w-[80px] text-center">S.NO</th>
-                      <th>Date</th>
-                      <th className="w-[140px] text-right">Fetch Count</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="[&>tr]:border-b [&>tr]:border-border">
-                {!drillEntity
-                  ? pageRows.map((r, i) => (
-                    <tr
-                      key={`${(r as RowMain).entity_id}-${i}`}
-                      className="odd:bg-muted/40 hover:bg-accent transition-colors"
-                    >
-                      <td className="px-3 py-3 text-center tabular-nums">{startIdx + i + 1}</td>
-                      <td className="px-3 py-3">
-                        <button
-                          className="underline underline-offset-2 hover:opacity-90"
-                          onClick={() =>
-                            setDrillEntity({ id: (r as RowMain).entity_id, name: (r as RowMain).name })
-                          }
-                        >
-                          {(r as RowMain).name}
-                        </button>
-                      </td>
-                      <td className="px-3 py-3 font-mono text-sm">{(r as RowMain).entity_id}</td>
-                      <td className="px-3 py-3">
-                        <TypeBadge type={(r as RowMain).type} />
-                      </td>
-                      <td className="px-3 py-3">
-                        {(r as RowMain).recent_fetch_time === "-" ? "-" : (r as RowMain).recent_fetch_time}
-                      </td>
-                      <td className="px-3 py-3 pr-4 text-right tabular-nums font-medium">
-                        {(r as RowMain).call_count.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))
-                  : pageRows.map((r, i) => (
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    <tr key={`d-${(r as any).date}-${i}`} className="odd:bg-muted/40 hover:bg-accent transition-colors">
-                      <td className="px-3 py-3 text-center tabular-nums">{startIdx + i + 1}</td>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any*/}
-                      <td className="px-3 py-3">{(r as any).date}</td>
-                      <td className="px-3 py-3 pr-4 text-right tabular-nums font-medium">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any*/}
-                        {(r as any).call_count.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                {pageRows.length === 0 && (
-                  <tr>
-                    <td colSpan={drillEntity ? 3 : 6} className="px-3 py-12 text-center">
-                      <EmptyState message={drillEntity ? "No fetches recorded for this entity yet." : "No records match your filters."} />
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {/* Table via DataTable */}
+          {!drillEntity ? (
+            <DataTable<RowMain>
+              data={pageRows as RowMain[]}
+              columns={mainCols}
+              showIndex
+              indexHeader="S.NO"
+              startIndex={startIdx + 1}
+              emptyContent={<EmptyState message="No records match your filters." />}
+              getRowKey={(r) => r.entity_id}
+            />
+          ) : (
+            <DataTable<{ date: string; call_count: number }>
+              data={pageRows as { date: string; call_count: number }[]}
+              columns={drillCols}
+              showIndex
+              indexHeader="S.NO"
+              startIndex={startIdx + 1}
+              emptyContent={<EmptyState message="No fetches recorded for this entity yet." />}
+              getRowKey={(r) => `d-${r.date}`}
+            />
+          )}
 
           {/* Footer: Download + Pagination */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -473,7 +467,6 @@ export default function CRTelemetryMock() {
 }
 
 /** -------- UI bits (same tone/style as Entities) -------- */
-
 function TypeBadge({ type }: { type: EntityType }) {
   const map: Record<EntityType, string> = {
     AA: "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-900/25 dark:text-indigo-300 dark:ring-indigo-800/40",

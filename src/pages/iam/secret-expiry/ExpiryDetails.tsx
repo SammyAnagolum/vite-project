@@ -18,9 +18,10 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
-import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
 import { AppIcons } from "@/lib/icon-map";
+import type { DataTableColumn } from "@/components/common/DataTable";
+import DataTable from "@/components/common/DataTable";
 
 /** ------------ Types ------------ */
 type EntityType = "AA" | "FIP" | "FIU";
@@ -31,6 +32,14 @@ type Row = {
   type: EntityType;
   /** IST local time in "YYYY-MM-DD HH:mm:ss" or null */
   expiryDate: string | null;
+};
+
+type RowView = {
+  name: string;
+  id: string;
+  type: "AA" | "FIP" | "FIU";
+  expiryDateFmt: string;
+  expiresIn: number; // NaN allowed
 };
 
 /** ------------ Mock (mixed future/past) ------------ */
@@ -153,6 +162,29 @@ export default function SecretExpiryDetails() {
     toCsvAndDownload([header, ...rows], "IAM_Secret_Expiry_Details.csv");
   };
 
+  const cols: DataTableColumn<RowView>[] = [
+    { key: "name", header: "Entity Name", cell: r => r.name },
+    { key: "id", header: "Entity ID", cell: r => <span className="font-mono text-sm">{r.id}</span> },
+    { key: "type", header: "Type", headClassName: "w-[120px]", cell: r => <TypeBadge type={r.type} /> },
+    { key: "exp", header: "Expiry Date (IST)", headClassName: "w-[200px]", cell: r => r.expiryDateFmt },
+    {
+      key: "in",
+      header: "Expires In",
+      headClassName: "w-[140px]",
+      align: "right",
+      cell: r =>
+        Number.isNaN(r.expiresIn) ? (
+          <span className="text-muted-foreground">N/A</span>
+        ) : r.expiresIn < 0 ? (
+          <span className="text-red-600">{r.expiresIn}</span>
+        ) : r.expiresIn <= 10 ? (
+          <span className="text-amber-600">{r.expiresIn}</span>
+        ) : (
+          <span className="text-emerald-600">{r.expiresIn}</span>
+        ),
+    },
+  ];
+
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-7xl py-6">
@@ -220,50 +252,14 @@ export default function SecretExpiryDetails() {
           </div>
 
           {/* Table */}
-          <div className="relative overflow-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 backdrop-blur bg-background/80">
-                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium [&>th]:text-left border-b border-border">
-                  <th className="w-[80px] text-center">S.NO</th>
-                  <th>Entity Name</th>
-                  <th>Entity ID</th>
-                  <th className="w-[120px]">Type</th>
-                  <th className="w-[200px]">Expiry Date (IST)</th>
-                  <th className="w-[140px] text-right">Expires In</th>
-                </tr>
-              </thead>
-              <tbody className="[&>tr]:border-b [&>tr]:border-border">
-                {pageRows.map((r, i) => (
-                  <tr key={`${r.id}-${i}`} className="odd:bg-muted/40 hover:bg-accent transition-colors">
-                    <td className="px-3 py-3 text-center tabular-nums">{startIdx + i + 1}</td>
-                    <td className="px-3 py-3">{r.name}</td>
-                    <td className="px-3 py-3 font-mono text-sm">{r.id}</td>
-                    <td className="px-3 py-3"><TypeBadge type={r.type} /></td>
-                    <td className="px-3 py-3">{r.expiryDateFmt}</td>
-                    <td className="px-3 py-3 pr-4 text-right tabular-nums font-medium">
-                      {Number.isNaN(r.expiresIn) ? (
-                        <span className="text-muted-foreground">N/A</span>
-                      ) : r.expiresIn < 0 ? (
-                        <span className="text-red-600">{r.expiresIn}</span>
-                      ) : r.expiresIn <= 10 ? (
-                        <span className="text-amber-600">{r.expiresIn}</span>
-                      ) : (
-                        <span className="text-emerald-600">{r.expiresIn}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {pageRows.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-3 py-12 text-center">
-                      {/* Use the prop your EmptyState expects: text or message */}
-                      <EmptyState message="No records match your filters." />
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable<RowView>
+            data={pageRows}
+            columns={cols}
+            showIndex
+            indexHeader="S.NO"
+            startIndex={startIdx + 0} // your page math
+            emptyMessage="No records match your filters."
+          />
 
           {/* Footer */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

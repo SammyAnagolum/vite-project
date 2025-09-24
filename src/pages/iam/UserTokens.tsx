@@ -24,12 +24,12 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
-import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
+import type { DataTableColumn } from "@/components/common/DataTable";
+import DataTable from "@/components/common/DataTable";
 
 // ---------------- Types ----------------
 type UserToken = {
-  id: number;
   userName: string;
   userId: string; // email or identifier
   lastTokenIssued: string; // "YYYY-MM-DD HH:mm:ss"
@@ -38,21 +38,21 @@ type UserToken = {
 
 // ---------------- Mock Data ----------------
 const MOCK_USERS: UserToken[] = [
-  { id: 1, userName: "John Doe", userId: "john.doe@bank.com", lastTokenIssued: "2025-07-10 14:30:15", tokensIssued: 5 },
-  { id: 2, userName: "Jane Smith", userId: "jane.smith@bank.com", lastTokenIssued: "2025-07-09 09:45:22", tokensIssued: 3 },
-  { id: 3, userName: "Mike Johnson", userId: "mike.johnson@bank.com", lastTokenIssued: "2025-07-08 16:20:18", tokensIssued: 8 },
-  { id: 4, userName: "Sarah Wilson", userId: "sarah.wilson@bank.com", lastTokenIssued: "2025-07-07 11:15:45", tokensIssued: 2 },
-  { id: 5, userName: "David Brown", userId: "david.brown@bank.com", lastTokenIssued: "2025-07-06 13:25:30", tokensIssued: 6 },
-  { id: 6, userName: "Emily Davis", userId: "emily.davis@bank.com", lastTokenIssued: "2025-07-05 10:40:12", tokensIssued: 4 },
-  { id: 7, userName: "Robert Miller", userId: "robert.miller@bank.com", lastTokenIssued: "2025-07-04 15:55:33", tokensIssued: 7 },
-  { id: 8, userName: "Lisa Anderson", userId: "lisa.anderson@bank.com", lastTokenIssued: "2025-07-03 12:10:28", tokensIssued: 1 },
-  { id: 9, userName: "Kevin Taylor", userId: "kevin.taylor@bank.com", lastTokenIssued: "2025-07-02 09:35:46", tokensIssued: 9 },
-  { id: 10, userName: "Amanda Moore", userId: "amanda.moore@bank.com", lastTokenIssued: "2025-07-01 14:20:17", tokensIssued: 3 },
-  { id: 11, userName: "Daniel Jackson", userId: "daniel.jackson@bank.com", lastTokenIssued: "2025-06-30 11:45:52", tokensIssued: 5 },
-  { id: 12, userName: "Michelle White", userId: "michelle.white@bank.com", lastTokenIssued: "2025-06-29 16:30:19", tokensIssued: 2 },
-  { id: 13, userName: "Christopher Lee", userId: "christopher.lee@bank.com", lastTokenIssued: "2025-06-28 13:15:41", tokensIssued: 6 },
-  { id: 14, userName: "Jennifer Harris", userId: "jennifer.harris@bank.com", lastTokenIssued: "2025-06-27 10:50:24", tokensIssued: 4 },
-  { id: 15, userName: "Matthew Clark", userId: "matthew.clark@bank.com", lastTokenIssued: "2025-06-26 15:25:38", tokensIssued: 8 },
+  { userName: "John Doe", userId: "john.doe@bank.com", lastTokenIssued: "2025-07-10 14:30:15", tokensIssued: 5 },
+  { userName: "Jane Smith", userId: "jane.smith@bank.com", lastTokenIssued: "2025-07-09 09:45:22", tokensIssued: 3 },
+  { userName: "Mike Johnson", userId: "mike.johnson@bank.com", lastTokenIssued: "2025-07-08 16:20:18", tokensIssued: 8 },
+  { userName: "Sarah Wilson", userId: "sarah.wilson@bank.com", lastTokenIssued: "2025-07-07 11:15:45", tokensIssued: 2 },
+  { userName: "David Brown", userId: "david.brown@bank.com", lastTokenIssued: "2025-07-06 13:25:30", tokensIssued: 6 },
+  { userName: "Emily Davis", userId: "emily.davis@bank.com", lastTokenIssued: "2025-07-05 10:40:12", tokensIssued: 4 },
+  { userName: "Robert Miller", userId: "robert.miller@bank.com", lastTokenIssued: "2025-07-04 15:55:33", tokensIssued: 7 },
+  { userName: "Lisa Anderson", userId: "lisa.anderson@bank.com", lastTokenIssued: "2025-07-03 12:10:28", tokensIssued: 1 },
+  { userName: "Kevin Taylor", userId: "kevin.taylor@bank.com", lastTokenIssued: "2025-07-02 09:35:46", tokensIssued: 9 },
+  { userName: "Amanda Moore", userId: "amanda.moore@bank.com", lastTokenIssued: "2025-07-01 14:20:17", tokensIssued: 3 },
+  { userName: "Daniel Jackson", userId: "daniel.jackson@bank.com", lastTokenIssued: "2025-06-30 11:45:52", tokensIssued: 5 },
+  { userName: "Michelle White", userId: "michelle.white@bank.com", lastTokenIssued: "2025-06-29 16:30:19", tokensIssued: 2 },
+  { userName: "Christopher Lee", userId: "christopher.lee@bank.com", lastTokenIssued: "2025-06-28 13:15:41", tokensIssued: 6 },
+  { userName: "Jennifer Harris", userId: "jennifer.harris@bank.com", lastTokenIssued: "2025-06-27 10:50:24", tokensIssued: 4 },
+  { userName: "Matthew Clark", userId: "matthew.clark@bank.com", lastTokenIssued: "2025-06-26 15:25:38", tokensIssued: 8 },
 ];
 
 export default function UserTokens() {
@@ -125,6 +125,13 @@ export default function UserTokens() {
     URL.revokeObjectURL(url);
   };
 
+  const cols: DataTableColumn<UserToken>[] = [
+    { key: "user", header: "User Name", cell: r => r.userName },
+    { key: "id", header: "User ID", cell: r => <span className="font-mono text-sm">{r.userId}</span> },
+    { key: "last", header: "Last Token Issued", headClassName: "w-[240px]", cell: r => r.lastTokenIssued },
+    { key: "count", header: "Tokens Issued", headClassName: "w-[160px]", align: "right", cell: r => r.tokensIssued },
+  ];
+
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-7xl py-6">
@@ -179,37 +186,13 @@ export default function UserTokens() {
           </div>
 
           {/* Table */}
-          <div className="relative overflow-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-background/80 backdrop-blur">
-                <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium [&>th]:text-left border-b border-border">
-                  <th className="w-[80px] text-center">S.NO</th>
-                  <th>User Name</th>
-                  <th>User ID</th>
-                  <th className="w-[240px]">Last Token Issued</th>
-                  <th className="w-[160px] text-right">Tokens Issued</th>
-                </tr>
-              </thead>
-              <tbody className="[&>tr]:border-b [&>tr]:border-border">
-                {pageRows.map((u, i) => (
-                  <tr key={u.id} className="odd:bg-muted/40 hover:bg-accent transition-colors">
-                    <td className="px-3 py-3 text-center tabular-nums">{startIdx + i + 1}</td>
-                    <td className="px-3 py-3">{u.userName}</td>
-                    <td className="px-3 py-3 font-mono text-sm">{u.userId}</td>
-                    <td className="px-3 py-3">{u.lastTokenIssued}</td>
-                    <td className="px-3 py-3 text-right font-medium tabular-nums">{u.tokensIssued}</td>
-                  </tr>
-                ))}
-                {pageRows.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-12 text-center">
-                      <EmptyState message="No users match your filters." />
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable<UserToken>
+            data={pageRows}
+            columns={cols}
+            showIndex
+            startIndex={startIdx}
+            emptyMessage="No users match your filters."
+          />
 
           {/* Footer / export + pagination */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
