@@ -38,6 +38,7 @@ import {
   Eye,
   PencilLine,
   Trash2,
+  Copy
 } from "lucide-react";
 import { Section } from "@/components/common/Section";
 import { KV } from "@/components/common/KV";
@@ -47,6 +48,7 @@ import { AppIcons } from "@/lib/icon-map";
 import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
 import { sortRows } from "@/components/common/data-table/sort";
 import DataTable from "@/components/common/DataTable";
+import { toast } from "sonner";
 
 /** ------------------------------------ Types ------------------------------------ */
 type Row = { name: string; cr_id: string; type: "AA" | "FIP" | "FIU" };
@@ -303,8 +305,24 @@ export default function CREntitiesMock() {
     };
   }, [selected]);
 
-  return (
+  const copyJson = async (obj: unknown, label: string) => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(obj, null, 2));
+      toast.success(`${label} JSON copied`);
+    } catch {
+      toast.error(`Failed to copy ${label} JSON`);
+    }
+  };
 
+  const generalJson = details
+    ? { name: details.name, id: details.id, type: details.type }
+    : null;
+
+  const contactsJson = details
+    ? { spocEmail: details.spocEmail, baseUrl: details.baseUrl, ips: details.ips }
+    : null;
+
+  return (
     <div className="">
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <h1 className="text-2xl font-semibold">Central Registry</h1>
@@ -472,14 +490,39 @@ export default function CREntitiesMock() {
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Entity Information</DialogTitle>
+            <DialogTitle className="flex items-start justify-between relative">
+              Entity Information
+              <span className="flex justify-end absolute top-0 right-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generalJson && contactsJson && copyJson({ ...generalJson, ...contactsJson }, "Complete Entity")}
+                  aria-label="Copy Contacts & Network JSON"
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy JSON
+                </Button>
+              </span>
+            </DialogTitle>
             <DialogDescription>
               Read-only summary of the selected entity.
+
             </DialogDescription>
           </DialogHeader>
           {details && (
             <div className="space-y-4">
-              <Section title="General Information">
+              <Section title="General Information" className="relative">
+                <div className="flex justify-end absolute right-5 top-5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => generalJson && copyJson(generalJson, "General Information")}
+                    aria-label="Copy General Information JSON"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy JSON
+                  </Button>
+                </div>
                 <KV label="Name" value={details.name} />
                 <KV label="ID" value={<span className="font-mono">{details.id}</span>} />
                 <KV
@@ -488,7 +531,18 @@ export default function CREntitiesMock() {
                 />
               </Section>
 
-              <Section title="Contacts & Network">
+              <Section title="Contacts & Network" className="relative">
+                <div className="flex justify-end absolute right-5 top-5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => contactsJson && copyJson(contactsJson, "Contacts & Network")}
+                    aria-label="Copy Contacts & Network JSON"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy JSON
+                  </Button>
+                </div>
                 <KV label="SPOC email" value={<a className="text-primary underline-offset-2 hover:underline" href={`mailto:${details.spocEmail}`}>{details.spocEmail}</a>} />
                 <KV label="Base URL" value={<span className="font-mono break-all">{details.baseUrl}</span>} />
                 <KV label="IPs" value={String(details.ips)} />
