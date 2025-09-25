@@ -1,10 +1,12 @@
 import * as React from "react";
 
 export type Theme = "light" | "dark" | "system";
+export type ResolvedTheme = "light" | "dark";
 
 export type ThemeCtx = {
     theme: Theme;
     setTheme: (t: Theme) => void;
+    resolved: ResolvedTheme; // ← add this
 };
 
 export const ThemeContext = React.createContext<ThemeCtx | undefined>(undefined);

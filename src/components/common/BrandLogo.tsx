@@ -10,8 +10,15 @@ export default function BrandLogo({
   className = "",
   alt = "Sahamati",
 }: { variant?: Variant; className?: string; alt?: string }) {
-  const theme = useTheme();
-  const src = variant === "vertical" ? LogoVert : variant === "mark" ? LogoMark : theme.theme === "dark" ? LogoHorizDark : LogoHoriz;
+  const { resolved } = useTheme();
+  const src =
+    variant === "vertical"
+      ? LogoVert
+      : variant === "mark"
+        ? LogoMark
+        : resolved === "dark"
+          ? LogoHorizDark
+          : LogoHoriz;
   return (
     <img
       src={src}
