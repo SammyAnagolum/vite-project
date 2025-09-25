@@ -25,7 +25,8 @@ import {
 } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import PageNumbers from "@/components/common/PageNumbers";
-import type { DataTableColumn } from "@/components/common/DataTable";
+import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
+import { sortRows } from "@/components/common/data-table/sort";
 import DataTable from "@/components/common/DataTable";
 
 // ---------------- Types ----------------
@@ -64,8 +65,17 @@ export default function UserTokens() {
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [page, setPage] = useState<number>(1);
 
+  const [sort, setSort] = useState<SortState>({ key: "name", direction: "asc" });
+
   // reset page when filters/page-size change
-  useEffect(() => setPage(1), [qName, qId, rowsPerPage]);
+  useEffect(() => setPage(1), [qName, qId, rowsPerPage, sort.key, sort.direction]);
+
+  const cols: DataTableColumn<UserToken>[] = useMemo(() => [
+    { key: "user", header: "User Name", cell: r => r.userName, sortBy: "userName" },
+    { key: "id", header: "User ID", cell: r => <span className="font-mono text-sm">{r.userId}</span>, sortBy: "userId" },
+    { key: "last", header: "Last Token Issued", headClassName: "w-[240px]", cell: r => r.lastTokenIssued, sortValue: (r) => Number.isNaN(r.lastTokenIssued) ? null : r.lastTokenIssued, },
+    { key: "count", header: "Tokens Issued", headClassName: "w-[160px]", align: "right", cell: r => r.tokensIssued, sortBy: "tokensIssued" },
+  ], []);
 
   // filtered rows
   const filtered = useMemo(() => {
@@ -87,17 +97,20 @@ export default function UserTokens() {
     return { totalUsers, highVolume, totalTokens, avg };
   }, [filtered]);
 
+  const sortedMain = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
+
   // pagination math
-  const totalRows = filtered.length;
+  const totalRows = sortedMain.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
   const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = filtered.slice(startIdx, startIdx + rowsPerPage);
+  const pageRows = sortedMain.slice(startIdx, startIdx + rowsPerPage);
   const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
   const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
 
   const resetFilters = () => {
     setQName("");
     setQId("");
+    setSort({ key: "user", direction: "asc" });
   };
 
   const downloadCsv = () => {
@@ -125,12 +138,7 @@ export default function UserTokens() {
     URL.revokeObjectURL(url);
   };
 
-  const cols: DataTableColumn<UserToken>[] = [
-    { key: "user", header: "User Name", cell: r => r.userName },
-    { key: "id", header: "User ID", cell: r => <span className="font-mono text-sm">{r.userId}</span> },
-    { key: "last", header: "Last Token Issued", headClassName: "w-[240px]", cell: r => r.lastTokenIssued },
-    { key: "count", header: "Tokens Issued", headClassName: "w-[160px]", align: "right", cell: r => r.tokensIssued },
-  ];
+
 
   return (
     <div className="min-h-screen">
@@ -190,8 +198,10 @@ export default function UserTokens() {
             data={pageRows}
             columns={cols}
             showIndex
-            startIndex={startIdx}
+            startIndex={startIdx + 1}
             emptyMessage="No users match your filters."
+            sort={sort}
+            onSortChange={setSort}
           />
 
           {/* Footer / export + pagination */}

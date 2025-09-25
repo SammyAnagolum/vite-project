@@ -8,54 +8,7 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-
-export type DataTableColumn<T> = {
-  /** unique key */
-  key: string;
-  /** header content */
-  header: React.ReactNode;
-  /** cell renderer */
-  cell: (row: T, rowIndex: number) => React.ReactNode;
-  /** tailwind classes for header cell (width, alignment, etc.) */
-  headClassName?: string;
-  /** tailwind classes for body cell */
-  className?: string;
-  /** "left" | "center" | "right" (adds text-right/tabular-nums) */
-  align?: "left" | "center" | "right";
-};
-
-type DataTableProps<T> = {
-  data: T[];
-  columns: DataTableColumn<T>[];
-
-  /** Optional index column (S.NO) */
-  showIndex?: boolean;
-  indexHeader?: React.ReactNode; // default: "S.NO"
-  startIndex?: number;           // default: 1
-  indexColClassName?: string;    // default: "w-[80px] text-center"
-
-  /** States */
-  loading?: boolean;
-  error?: string | null;
-  emptyMessage?: string;
-  emptyContent?: React.ReactNode;
-  loadingContent?: React.ReactNode;
-  errorContent?: React.ReactNode;
-
-  /** Row key */
-  getRowKey?: (row: T, rowIndex: number) => string;
-
-  /** Styling toggles */
-  stickyHeader?: boolean; // default: true
-  zebra?: boolean;        // default: true
-  hover?: boolean;        // default: true
-
-  /** Class hooks */
-  containerClassName?: string;
-  tableClassName?: string;
-  theadClassName?: string;
-  tbodyClassName?: string;
-};
+import type { DataTableColumn, SortState } from "./data-table/types";
 
 export default function DataTable<T>({
   data,
@@ -70,7 +23,7 @@ export default function DataTable<T>({
   emptyContent,
   loadingContent,
   errorContent,
-  getRowKey,
+  // getRowKey,
   stickyHeader = true,
   zebra = true,
   hover = true,
@@ -78,7 +31,51 @@ export default function DataTable<T>({
   tableClassName,
   theadClassName,
   tbodyClassName,
-}: DataTableProps<T>) {
+  sort,
+  onSortChange,
+}: {
+  data: T[];
+  columns: DataTableColumn<T>[];
+  showIndex?: boolean;
+  indexHeader?: React.ReactNode;
+  startIndex?: number;
+  indexColClassName?: string;
+  loading?: boolean;
+  error?: string | null;
+  emptyMessage?: string;
+  emptyContent?: React.ReactNode;
+  loadingContent?: React.ReactNode;
+  errorContent?: React.ReactNode;
+  getRowKey?: (row: T, rowIndex: number) => string;
+  stickyHeader?: boolean;
+  zebra?: boolean;
+  hover?: boolean;
+  containerClassName?: string;
+  tableClassName?: string;
+  theadClassName?: string;
+  tbodyClassName?: string;
+  sort?: SortState;
+  onSortChange?: (next: SortState) => void;
+}) {
+  const [internalSort, setInternalSort] = React.useState<SortState>({
+    key: null,
+    direction: "none",
+  });
+  const effSort = sort ?? internalSort;
+
+  const updateSort = React.useCallback(
+    (updater: (prev: SortState) => SortState) => {
+      if (onSortChange) {
+        // controlled: compute next from current effective sort
+        onSortChange(updater(effSort));
+      } else {
+        // uncontrolled: use functional updater
+        setInternalSort(updater);
+      }
+    },
+    [onSortChange, effSort]
+  );
+
   const colCount = columns.length + (showIndex ? 1 : 0);
 
   const alignClass = (a: DataTableColumn<T>["align"]) =>
@@ -86,13 +83,18 @@ export default function DataTable<T>({
       : a === "right" ? "text-right tabular-nums"
         : "text-left";
 
+  const toggleSort = (key: string, sortable?: boolean) => {
+    if (sortable === false) return;
+    updateSort((prev: SortState) => {
+      if (prev.key !== key) return { key, direction: "asc" as const };
+      if (prev.direction === "asc") return { key, direction: "desc" as const };
+      if (prev.direction === "desc") return { key: null, direction: "none" as const };
+      return { key, direction: "asc" as const };
+    });
+  };
+
   return (
-    <div
-      className={cn(
-        "relative overflow-auto rounded-lg border border-border",
-        containerClassName
-      )}
-    >
+    <div className={cn("relative overflow-auto rounded-lg border border-border", containerClassName)}>
       <Table className={cn("w-full text-sm", tableClassName)}>
         <TableHeader
           className={cn(
@@ -106,14 +108,30 @@ export default function DataTable<T>({
             {showIndex && (
               <TableHead className={indexColClassName}>{indexHeader}</TableHead>
             )}
-            {columns.map((c) => (
-              <TableHead
-                key={c.key}
-                className={cn(alignClass(c.align), c.headClassName)}
-              >
-                {c.header}
-              </TableHead>
-            ))}
+            {columns.map((c) => {
+              const sortable = c.sortable ?? true;
+              // const active = effSort.key === c.key && effSort.direction !== "none";
+              return (
+                <TableHead
+                  key={c.key}
+                  className={cn(
+                    alignClass(c.align),
+                    c.headClassName,
+                    sortable && "cursor-pointer select-none"
+                  )}
+                  onClick={() => toggleSort(c.key, sortable)}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {c.header}
+                    {sortable && (
+                      <span className="text-muted-foreground">
+                        {effSort.key !== c.key || effSort.direction === "none" ? "↕" : effSort.direction === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </span>
+                </TableHead>
+              );
+            })}
           </TableRow>
         </TableHeader>
 
@@ -138,7 +156,16 @@ export default function DataTable<T>({
             </TableRow>
           ) : (
             data.map((row, i) => {
-              const key = getRowKey?.(row, i) ?? String(i);
+              const key = (typeof (row as any)?.id === "string") // eslint-disable-line @typescript-eslint/no-explicit-any
+                ? (row as any).id // eslint-disable-line @typescript-eslint/no-explicit-any
+                : (typeof (row as any)?.key === "string") // eslint-disable-line @typescript-eslint/no-explicit-any
+                  ? (row as any).key // eslint-disable-line @typescript-eslint/no-explicit-any
+                  : (typeof (row as any)?.requestId === "string") // eslint-disable-line @typescript-eslint/no-explicit-any
+                    ? (row as any).requestId // eslint-disable-line @typescript-eslint/no-explicit-any
+                    : (typeof (row as any)?.entity_id === "string") // eslint-disable-line @typescript-eslint/no-explicit-any
+                      ? (row as any).entity_id // eslint-disable-line @typescript-eslint/no-explicit-any
+                      : String(i);
+
               return (
                 <TableRow
                   key={key}
@@ -155,7 +182,7 @@ export default function DataTable<T>({
                   {columns.map((c) => (
                     <TableCell
                       key={c.key}
-                      className={cn(`px-3` + showIndex ? ' py-1' : ' py-3', alignClass(c.align), c.className)}
+                      className={cn("px-3", showIndex ? "py-1" : "py-3", alignClass(c.align), c.className)}
                     >
                       {c.cell(row, i)}
                     </TableCell>

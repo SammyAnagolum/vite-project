@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,9 @@ import {
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
-import DataTable, { type DataTableColumn } from "@/components/common/DataTable";
+import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
+import { sortRows } from "@/components/common/data-table/sort";
+import DataTable from "@/components/common/DataTable";
 
 /** ---------------- Types ---------------- */
 type DetailRow = {
@@ -43,6 +45,8 @@ type EntityRow = {
   recent_timestamp: string | "-"; // latest known token time
   details: DetailRow[];           // per-day details (mocked)
 };
+
+const EMPTY_DETAILS: DetailRow[] = [];
 
 /** ---------------- Mock Data ---------------- */
 const MOCK: EntityRow[] = [
@@ -134,8 +138,10 @@ export default function RefreshRate() {
   // detail view toggle
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
 
+  const [sort, setSort] = useState<SortState>({ key: "name", direction: "asc" });
+
   // reset page on filter change
-  useEffect(() => setPage(1), [selectedDate, qName, qId, rowsPerPage]);
+  useEffect(() => setPage(1), [selectedDate, qName, qId, rowsPerPage, sort.key, sort.direction]);
 
   // Aggregate for the main table by selected date
   type AggregatedRow = {
@@ -189,11 +195,80 @@ export default function RefreshRate() {
     return { highVolume, inactive24h, totalIssued, avgPerEntity };
   }, [aggregated, selectedDate]);
 
+  // when switching view, set an intuitive default sort
+  useEffect(() => {
+    setSort(selectedEntityId ? { key: "date", direction: "desc" } : { key: "name", direction: "asc" });
+  }, [selectedEntityId]);
+
+  // columns
+  const mainCols: DataTableColumn<AggregatedRow>[] = useMemo(() => [
+    {
+      key: "name",
+      header: "Entity Name",
+      cell: (r) => (
+        <button
+          className="text-primary underline-offset-2 hover:underline"
+          onClick={() => setSelectedEntityId(r.entity_id)}
+        >
+          {r.entity_name}
+        </button>
+      ),
+      sortBy: "entity_name"
+    },
+    {
+      key: "id",
+      header: "Entity ID",
+      cell: (r) => <span className="font-mono text-sm">{r.entity_id}</span>,
+      sortBy: "entity_id"
+    },
+    {
+      key: "ts",
+      header: "Last Token Issued Timestamp",
+      headClassName: "w-[220px]",
+      cell: (r) => r.recent_timestamp,
+      sortValue: (r) => Number.isNaN(r.recent_timestamp) ? null : r.recent_timestamp,
+    },
+    {
+      key: "issued",
+      header: "Issued",
+      headClassName: "w-[140px]",
+      align: "right",
+      cell: (r) => r.tokens_issued,
+      sortBy: "tokens_issued"
+    },
+    {
+      key: "not",
+      header: "Not Issued",
+      headClassName: "w-[160px]",
+      align: "right",
+      cell: (r) => r.tokens_not_issued,
+      sortBy: "tokens_not_issued"
+    },
+    {
+      key: "total",
+      header: "Total",
+      headClassName: "w-[120px]",
+      align: "right",
+      cell: (r) => <span className="font-medium">{r.tokens_total}</span>,
+      sortBy: "tokens_total"
+    },
+  ], []);
+
+  const detailCols: DataTableColumn<DetailRow>[] = [
+    { key: "date", header: "Date", sortBy: "date", cell: (r) => r.date },
+    { key: "i", header: "Tokens Issued", headClassName: "w-[160px]", align: "right", sortBy: "tokens_issued", cell: (r) => r.tokens_issued },
+    { key: "ni", header: "Tokens Not Issued", headClassName: "w-[180px]", align: "right", sortBy: "tokens_not_issued", cell: (r) => r.tokens_not_issued },
+    { key: "t", header: "Total", headClassName: "w-[140px]", align: "right", sortBy: "tokens_total", cell: (r) => <span className="font-medium">{r.tokens_total}</span> },
+  ];
+
+  // sort before pagination
+  const sortedMain = useMemo(() => sortRows(aggregated, mainCols, sort), [aggregated, mainCols, sort]);
+
   // pagination math
-  const totalRows = aggregated.length;
+  const totalRows = sortedMain.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
   const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = aggregated.slice(startIdx, startIdx + rowsPerPage);
+  const pageRows = sortedMain.slice(startIdx, startIdx + rowsPerPage);
   const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
   const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
 
@@ -201,6 +276,7 @@ export default function RefreshRate() {
     setSelectedDate(todayISO());
     setQName("");
     setQId("");
+    setSort(selectedEntityId ? { key: "date", direction: "desc" } : { key: "name", direction: "asc" })
   };
 
   const downloadCsv = () => {
@@ -237,61 +313,6 @@ export default function RefreshRate() {
     () => MOCK.find((e) => e.entity_id === selectedEntityId) || null,
     [selectedEntityId]
   );
-
-  // columns
-  const mainCols: DataTableColumn<AggregatedRow>[] = [
-    {
-      key: "name",
-      header: "Entity Name",
-      cell: (r) => (
-        <button
-          className="text-primary underline-offset-2 hover:underline"
-          onClick={() => setSelectedEntityId(r.entity_id)}
-        >
-          {r.entity_name}
-        </button>
-      ),
-    },
-    {
-      key: "id",
-      header: "Entity ID",
-      cell: (r) => <span className="font-mono text-sm">{r.entity_id}</span>,
-    },
-    {
-      key: "ts",
-      header: "Last Token Issued Timestamp",
-      headClassName: "w-[220px]",
-      cell: (r) => r.recent_timestamp,
-    },
-    {
-      key: "issued",
-      header: "Issued",
-      headClassName: "w-[140px]",
-      align: "right",
-      cell: (r) => r.tokens_issued,
-    },
-    {
-      key: "not",
-      header: "Not Issued",
-      headClassName: "w-[160px]",
-      align: "right",
-      cell: (r) => r.tokens_not_issued,
-    },
-    {
-      key: "total",
-      header: "Total",
-      headClassName: "w-[120px]",
-      align: "right",
-      cell: (r) => <span className="font-medium">{r.tokens_total}</span>,
-    },
-  ];
-
-  const detailCols: DataTableColumn<DetailRow>[] = [
-    { key: "date", header: "Date", cell: (r) => r.date },
-    { key: "i", header: "Tokens Issued", headClassName: "w-[160px]", align: "right", cell: (r) => r.tokens_issued },
-    { key: "ni", header: "Tokens Not Issued", headClassName: "w-[180px]", align: "right", cell: (r) => r.tokens_not_issued },
-    { key: "t", header: "Total", headClassName: "w-[140px]", align: "right", cell: (r) => <span className="font-medium">{r.tokens_total}</span> },
-  ];
 
   return (
     <div className="min-h-screen">
@@ -388,6 +409,8 @@ export default function RefreshRate() {
                 startIndex={startIdx + 1}
                 emptyContent={<EmptyState message="No entities for the selected filters." />}
                 getRowKey={(r) => r.entity_id}
+                sort={sort}
+                onSortChange={setSort}
               />
 
               {/* Footer */}
@@ -469,7 +492,7 @@ export default function RefreshRate() {
               </div>
             </>
           ) : (
-            <EntityDetailCard entity={selectedEntity} detailCols={detailCols} />
+            <EntityDetailCard entity={selectedEntity} detailCols={detailCols} sort={sort} onSortChange={setSort} />
           )}
         </Card>
       </div>
@@ -477,38 +500,54 @@ export default function RefreshRate() {
   );
 }
 
+
+
 /** ---------------- Detail View ---------------- */
 function EntityDetailCard({
   entity,
   detailCols,
+  sort,
+  onSortChange,
 }: {
   entity: EntityRow | null;
   detailCols: DataTableColumn<DetailRow>[];
+  sort: SortState;
+  onSortChange: (s: SortState) => void;
 }) {
-  if (!entity) return null;
+  // ✅ Call hooks unconditionally with safe fallbacks
+  const details: DetailRow[] = entity?.details ?? EMPTY_DETAILS;
 
-  const totals = entity.details.reduce(
-    (acc, d) => {
-      acc.issued += d.tokens_issued;
-      acc.notIssued += d.tokens_not_issued;
-      acc.total += d.tokens_total;
-      return acc;
-    },
-    { issued: 0, notIssued: 0, total: 0 }
+  const totals = useMemo(
+    () =>
+      details.reduce(
+        (acc, d) => {
+          acc.issued += d.tokens_issued;
+          acc.notIssued += d.tokens_not_issued;
+          acc.total += d.tokens_total;
+          return acc;
+        },
+        { issued: 0, notIssued: 0, total: 0 }
+      ),
+    [details]
   );
+
+  const sortedDetails = useMemo(
+    () => sortRows(details, detailCols, sort),
+    [details, detailCols, sort]
+  );
+
+  // Guard rendering/JSX after hooks
+  if (!entity) return null;
 
   const download = () => {
     const header = ["S.NO", "Date", "Tokens Issued", "Tokens Not Issued", "Total Tokens"];
-    const rows = entity.details
-      .slice()
-      .sort((a, b) => (a.date < b.date ? 1 : -1))
-      .map((d, i) => [
-        String(i + 1),
-        d.date,
-        String(d.tokens_issued),
-        String(d.tokens_not_issued),
-        String(d.tokens_total),
-      ]);
+    const rows = sortedDetails.map((d, i) => [
+      String(i + 1),
+      d.date,
+      String(d.tokens_issued),
+      String(d.tokens_not_issued),
+      String(d.tokens_total),
+    ]);
     const csv = [header, ...rows].map((r) => r.map(safeCsv).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -529,13 +568,15 @@ function EntityDetailCard({
       </div>
 
       <DataTable<DetailRow>
-        data={[...entity.details].sort((a, b) => (a.date < b.date ? 1 : -1))}
+        data={sortedDetails}
         columns={detailCols}
         showIndex
         indexHeader="S.NO"
         startIndex={1}
         emptyContent={<EmptyState message="No token activity for this entity." />}
         getRowKey={(r) => `${entity.entity_id}-${r.date}`}
+        sort={sort}
+        onSortChange={onSortChange}
       />
 
       <div className="mt-4">
@@ -547,6 +588,7 @@ function EntityDetailCard({
     </>
   );
 }
+
 
 /** ---------------- Reusable bits ---------------- */
 function MiniKpi({ label, value }: { label: string; value: number }) {

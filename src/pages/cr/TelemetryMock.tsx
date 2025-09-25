@@ -21,7 +21,9 @@ import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import PageNumbers from "@/components/common/PageNumbers";
 import { AppIcons } from "@/lib/icon-map";
-import DataTable, { type DataTableColumn } from "@/components/common/DataTable";
+import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
+import { sortRows } from "@/components/common/data-table/sort";
+import DataTable from "@/components/common/DataTable";
 
 /** -------- Types -------- */
 type EntityType = "AA" | "FIP" | "FIU";
@@ -112,6 +114,8 @@ export default function CRTelemetryMock() {
   const [page, setPage] = useState<number>(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const [sort, setSort] = useState<SortState>({ key: "name", direction: "asc" });
+
   // mock data (re-gen on refresh)
   const [{ events, lastByEntity }, setMock] = useState(() => generateTelemetry());
   function refresh() {
@@ -168,6 +172,11 @@ export default function CRTelemetryMock() {
   // drill-in state
   const [drillEntity, setDrillEntity] = useState<{ id: string; name: string } | null>(null);
 
+  // when switching view, set an intuitive default sort
+  useEffect(() => {
+    setSort(drillEntity ? { key: "date", direction: "desc" } : { key: "name", direction: "asc" });
+  }, [drillEntity]);
+
   // drill-in rows (per-date call counts for selected entity)
   const drillRows = useMemo(() => {
     if (!drillEntity) return [];
@@ -183,20 +192,13 @@ export default function CRTelemetryMock() {
 
   const drillTotal = useMemo(() => drillRows.reduce((s, r) => s + r.call_count, 0), [drillRows]);
 
-  // pagination
-  useEffect(() => setPage(1), [qName, qId, qType, dateStr, rowsPerPage, drillEntity]);
-  const source = drillEntity ? drillRows : rowsMain;
-  const totalRows = source.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = source.slice(startIdx, startIdx + rowsPerPage);
-  const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
-  const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
+  // pagination reset
+  useEffect(() => setPage(1), [qName, qId, qType, dateStr, rowsPerPage, drillEntity, sort.key, sort.direction]);
 
   // table columns
   type DrillRow = { date: string; call_count: number };
 
-  const mainCols: DataTableColumn<RowMain>[] = [
+  const mainCols: DataTableColumn<RowMain>[] = useMemo(() => [
     {
       key: "name",
       header: "Entity Name",
@@ -208,23 +210,27 @@ export default function CRTelemetryMock() {
           {r.name}
         </button>
       ),
+      sortBy: "name"
     },
     {
       key: "id",
       header: "Entity ID",
       cell: (r) => <span className="font-mono text-sm">{r.entity_id}</span>,
+      sortBy: "entity_id"
     },
     {
       key: "type",
       header: "Type",
       headClassName: "w-[120px]",
       cell: (r) => <TypeBadge type={r.type} />,
+      sortBy: "type"
     },
     {
       key: "recent",
       header: "Recent Fetch Date",
       headClassName: "w-[180px]",
       cell: (r) => (r.recent_fetch_time === "-" ? "-" : r.recent_fetch_time),
+      sortValue: (r) => Number.isNaN(r.recent_fetch_time) ? null : r.recent_fetch_time,
     },
     {
       key: "count",
@@ -232,10 +238,11 @@ export default function CRTelemetryMock() {
       headClassName: "w-[140px]",
       align: "right",
       cell: (r) => r.call_count.toLocaleString(),
+      sortBy: "call_count"
     },
-  ];
+  ], []);
 
-  const drillCols: DataTableColumn<DrillRow>[] = [
+  const drillCols: DataTableColumn<DrillRow>[] = useMemo(() => [
     { key: "date", header: "Date", cell: (r) => r.date },
     {
       key: "count",
@@ -243,8 +250,21 @@ export default function CRTelemetryMock() {
       headClassName: "w-[140px]",
       align: "right",
       cell: (r) => r.call_count.toLocaleString(),
+      sortBy: "call_count",
     },
-  ];
+  ], []);
+
+  // sort before pagination (view-aware)
+  const sortedMain = useMemo(() => sortRows(rowsMain, mainCols, sort), [rowsMain, mainCols, sort]);
+  const sortedDrill = useMemo(() => sortRows(drillRows, drillCols, sort), [drillRows, drillCols, sort]);
+  const source = drillEntity ? sortedDrill : sortedMain;
+
+  const totalRows = source.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+  const startIdx = (page - 1) * rowsPerPage;
+  const pageRows = source.slice(startIdx, startIdx + rowsPerPage);
+  const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
+  const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
 
   // CSV download (context-aware: main vs drill)
   function downloadCsv() {
@@ -271,6 +291,7 @@ export default function CRTelemetryMock() {
     setQId("");
     setQType("all");
     setDateStr(toISODate(new Date()));
+    setSort(drillEntity ? { key: "date", direction: "desc" } : { key: "name", direction: "asc" });
   };
 
   return (
@@ -373,6 +394,8 @@ export default function CRTelemetryMock() {
               startIndex={startIdx + 1}
               emptyContent={<EmptyState message="No records match your filters." />}
               getRowKey={(r) => r.entity_id}
+              sort={sort}
+              onSortChange={setSort}
             />
           ) : (
             <DataTable<{ date: string; call_count: number }>
@@ -383,6 +406,8 @@ export default function CRTelemetryMock() {
               startIndex={startIdx + 1}
               emptyContent={<EmptyState message="No fetches recorded for this entity yet." />}
               getRowKey={(r) => `d-${r.date}`}
+              sort={sort}
+              onSortChange={setSort}
             />
           )}
 

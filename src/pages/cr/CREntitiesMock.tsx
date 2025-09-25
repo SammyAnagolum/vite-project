@@ -44,7 +44,8 @@ import { KV } from "@/components/common/KV";
 import Kpi from "@/components/common/Kpi";
 import PageNumbers from "@/components/common/PageNumbers";
 import { AppIcons } from "@/lib/icon-map";
-import type { DataTableColumn } from "@/components/common/DataTable";
+import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
+import { sortRows } from "@/components/common/data-table/sort";
 import DataTable from "@/components/common/DataTable";
 
 /** ------------------------------------ Types ------------------------------------ */
@@ -152,6 +153,8 @@ export default function CREntitiesMock() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState<Row | null>(null);
 
+  const [sort, setSort] = useState<SortState>({ key: null, direction: "none" });
+
   // edit form (very small demo)
   const [editForm, setEditForm] = useState<{ name: string; type: Row["type"]; spocEmail: string; baseUrl: string }>({
     name: "",
@@ -184,13 +187,41 @@ export default function CREntitiesMock() {
   // reset to page 1 when filters or rowsPerPage change
   useEffect(() => {
     setPage(1);
-  }, [qName, qId, qType, rowsPerPage]);
+  }, [qName, qId, qType, rowsPerPage, sort.key, sort.direction]);
+
+  const cols: DataTableColumn<Row>[] = useMemo(() => [
+    { key: "name", header: "Entity Name", cell: r => r.name, sortBy: "name" },
+    { key: "cr_id", header: "Entity ID", cell: r => <span className="font-mono text-sm">{r.cr_id}</span>, sortBy: "cr_id" },
+    { key: "type", header: "Type", headClassName: "w-[120px]", cell: r => <TypeBadge type={r.type} />, sortBy: "type" },
+    {
+      key: "actions",
+      header: <span className="block text-center">Actions</span>,
+      headClassName: "w-[140px]",
+      className: "text-center",
+      sortable: false,
+      cell: r => (
+        <div className="flex items-center justify-center gap-1.5">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => openView(r)} aria-label="View">
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20" onClick={() => openEdit(r)} aria-label="Edit">
+            <PencilLine className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => openDelete(r)} aria-label="Delete">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], []);
+
+  const sorted = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
 
   // pagination math
-  const totalRows = filtered.length;
+  const totalRows = sorted.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
   const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = filtered.slice(startIdx, startIdx + rowsPerPage);
+  const pageRows = sorted.slice(startIdx, startIdx + rowsPerPage);
   const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
   const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
 
@@ -198,6 +229,7 @@ export default function CREntitiesMock() {
     setQName("");
     setQId("");
     setQType("all");
+    setSort({ key: "name", direction: "asc" })
   };
 
   const refresh = () => {
@@ -271,31 +303,6 @@ export default function CREntitiesMock() {
     };
   }, [selected]);
 
-  const cols: DataTableColumn<Row>[] = [
-    { key: "name", header: "Entity Name", cell: r => r.name },
-    { key: "id", header: "Entity ID", cell: r => <span className="font-mono text-sm">{r.cr_id}</span> },
-    { key: "type", header: "Type", headClassName: "w-[120px]", cell: r => <TypeBadge type={r.type} /> },
-    {
-      key: "actions",
-      header: <span className="block text-center">Actions</span>,
-      headClassName: "w-[140px]",
-      className: "text-center",
-      cell: r => (
-        <div className="flex items-center justify-center gap-1.5">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => openView(r)} aria-label="View">
-            <Eye className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20" onClick={() => openEdit(r)} aria-label="Edit">
-            <PencilLine className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => openDelete(r)} aria-label="Delete">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div className="">
       <div className="mx-auto max-w-7xl py-6">
@@ -365,7 +372,9 @@ export default function CREntitiesMock() {
             columns={cols}
             showIndex
             indexHeader="S.NO"
-            startIndex={startIdx}
+            startIndex={startIdx + 1}
+            sort={sort}
+            onSortChange={setSort}
           />
 
           {/* Footer: Download + Pagination */}

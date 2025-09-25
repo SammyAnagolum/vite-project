@@ -14,7 +14,8 @@ import { Play, RefreshCcw, Search, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 // wire your real API here
 import { useReportsApi } from "@/services/reportsApi"; // fetchDashboards, generateReport
-import type { DataTableColumn } from "@/components/common/DataTable";
+import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
+import { sortRows } from "@/components/common/data-table/sort";
 import DataTable from "@/components/common/DataTable";
 
 type Dashboard = {
@@ -38,8 +39,8 @@ export default function ExecuteReports() {
 
   // data
   const [rows, setRows] = useState<Dashboard[]>([]);
-  const [, setLoading] = useState(true);
-  const [, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
 
   // filters/search
   const [q, setQ] = useState("");
@@ -60,12 +61,14 @@ export default function ExecuteReports() {
   const [toDate, setToDate] = useState<string>("");
   const [toTime, setToTime] = useState<string>("");
 
+  // sorting (3-state: none -> asc -> desc -> none)
+  const [sort, setSort] = useState<SortState>({ key: null, direction: "none" });
+
   useEffect(() => {
     (async () => {
       setLoading(true); setErr(null);
       try {
         const res = await fetchDashboards();
-        // normalize if needed
         const list: Dashboard[] = res.dashboards?.map((d: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
           id: String(d.id ?? d.dashboard_id ?? d.dashboardId),
           dashboardId: String(d.dashboard_id ?? d.dashboardId ?? d.id),
@@ -83,7 +86,7 @@ export default function ExecuteReports() {
   }, [fetchDashboards]);
 
   // reset page when filters change
-  useEffect(() => setPage(1), [q, createdByFilter, rowsPerPage]);
+  useEffect(() => setPage(1), [q, createdByFilter, rowsPerPage, sort.key, sort.direction]);
 
   const filtered = useMemo(() => {
     const qlc = q.trim().toLowerCase();
@@ -94,12 +97,42 @@ export default function ExecuteReports() {
     });
   }, [rows, q, createdByFilter]);
 
-  // pagination math
-  const totalRows = filtered.length;
+  // columns (define BEFORE sorting)
+  const cols: DataTableColumn<Dashboard>[] = useMemo(() => [
+    { key: "name", header: "Name", cell: (r) => <span className="font-medium">{r.name}</span>, sortBy: "name" },
+    { key: "created", header: "Created By", headClassName: "w-[200px]", cell: (r) => r.createdBy, sortBy: "createdBy" },
+    { key: "modified", header: "Modified At", headClassName: "w-[220px]", cell: (r) => r.modifiedAt, sortBy: "modifiedAt" },
+    {
+      key: "actions",
+      header: <span className="block text-center">Actions</span>,
+      headClassName: "w-[120px]",
+      className: "text-center",
+      sortable: false,
+      cell: (r) => (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" onClick={() => openGenerateDialog(r)} variant="outline">
+                <Play className="mr-2 h-4 w-4" />
+                Generate
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Generate this report</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ),
+    },
+  ], []); // columns are static here
+
+  // apply sorting BEFORE pagination
+  const sortedMain = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
+
+  // pagination math (use SORTED)
+  const totalRows = sortedMain.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = filtered.slice(startIdx, startIdx + rowsPerPage);
-  const rangeStart = totalRows ? startIdx + 1 : 0;
+  const startIdx = (page - 1) * rowsPerPage;        // 0-based
+  const pageRows = sortedMain.slice(startIdx, startIdx + rowsPerPage);
+  const rangeStart = totalRows ? startIdx + 1 : 0;  // 1-based for display
   const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
 
   const refresh = async () => {
@@ -126,7 +159,6 @@ export default function ExecuteReports() {
   function openGenerateDialog(item: Dashboard) {
     setSelected(item);
     setRange("Last 1 month");
-    // clear custom
     setFromDate(""); setFromTime(""); setToDate(""); setToTime("");
     setOpen(true);
   }
@@ -136,7 +168,10 @@ export default function ExecuteReports() {
     setSelected(null);
   }
 
-  const parsedRange = useMemo(() => buildRange(range, fromDate, fromTime, toDate, toTime), [range, fromDate, fromTime, toDate, toTime]);
+  const parsedRange = useMemo(
+    () => buildRange(range, fromDate, fromTime, toDate, toTime),
+    [range, fromDate, fromTime, toDate, toTime]
+  );
   const isGenerateDisabled = !selected || !parsedRange;
 
   const handleGenerate = async () => {
@@ -155,30 +190,12 @@ export default function ExecuteReports() {
     }
   };
 
-  const cols: DataTableColumn<Dashboard>[] = [
-    { key: "name", header: "Name", cell: (r) => <span className="font-medium">{r.name}</span> },
-    { key: "created", header: "Created By", headClassName: "w-[200px]", cell: (r) => r.createdBy },
-    { key: "modified", header: "Modified At", headClassName: "w-[220px]", cell: (r) => r.modifiedAt },
-    {
-      key: "actions",
-      header: <span className="block text-center">Actions</span>,
-      headClassName: "w-[120px]",
-      className: "text-center",
-      cell: (r) => (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button size="sm" onClick={() => openGenerateDialog(r)}>
-                <Play className="mr-2 h-4 w-4" />
-                Generate
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Generate this report</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      ),
-    },
-  ];
+  const onReset = () => {
+    setQ(""); setCreatedByFilter("");
+    setSort({ key: null, direction: "none" }); // also reset sort
+    setPage(1);
+    setSort({ key: "name", direction: "asc" });
+  };
 
   return (
     <div className="min-h-screen">
@@ -200,8 +217,8 @@ export default function ExecuteReports() {
             </div>
 
             <div className="flex gap-2 md:ml-auto">
-              <Button variant="outline" onClick={() => { setQ(""); setCreatedByFilter(""); }}>Reset</Button>
-              <Button variant="outline" onClick={refresh}>
+              <Button variant="outline" onClick={onReset}>Reset</Button>
+              <Button variant="outline" onClick={refresh} disabled={loading}>
                 <RefreshCcw className="mr-2 h-4 w-4" />
                 Refresh
               </Button>
@@ -213,8 +230,12 @@ export default function ExecuteReports() {
             data={pageRows}
             columns={cols}
             showIndex
-            startIndex={startIdx}
-            emptyMessage="No users match your filters."
+            startIndex={startIdx + 1}
+            emptyMessage="No reports match your filters."
+            loading={loading}
+            error={err}
+            sort={sort}
+            onSortChange={setSort}
           />
 
           {/* Footer */}

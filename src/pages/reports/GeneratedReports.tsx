@@ -12,10 +12,10 @@ import {
 
 import { Download, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-// wire your real API here
 import { useReportsApi } from "@/services/reportsApi"; // fetchGeneratedReports, downloadReport, deleteReport
-import type { DataTableColumn } from "@/components/common/DataTable";
 import DataTable from "@/components/common/DataTable";
+import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
+import { sortRows } from "@/components/common/data-table/sort";
 
 type GeneratedRow = {
   requestId: string;
@@ -32,6 +32,15 @@ const STATUS_TONE: Record<GeneratedRow["status"], string> = {
   FAILED: "bg-red-100 text-red-800",
 };
 
+const STATUSES = ["PENDING", "PROCESSING", "COMPLETED", "FAILED"] as const;
+type Status = typeof STATUSES[number];
+type StatusFilter = Status | "__ALL__";
+
+function toStatus(v: unknown): Status {
+  const s = String(v ?? "").toUpperCase();
+  return (STATUSES as readonly string[]).includes(s) ? (s as Status) : "PENDING";
+}
+
 export default function GeneratedReports() {
   const { fetchGeneratedReports, downloadReport, deleteReport } = useReportsApi();
 
@@ -42,6 +51,7 @@ export default function GeneratedReports() {
 
   // filters
   const [q, setQ] = useState("");
+  const [status, setStatus] = useState<StatusFilter>("__ALL__");
 
   // pagination
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -49,9 +59,9 @@ export default function GeneratedReports() {
 
   // delete confirm
   const [toDelete, setToDelete] = useState<GeneratedRow | null>(null);
-  type Status = GeneratedRow["status"];
-  type StatusFilter = Status | "__ALL__";
-  const [status, setStatus] = useState<StatusFilter>("__ALL__");
+
+  // sorting (3-state: none → asc → desc → none)
+  const [sort, setSort] = useState<SortState>({ key: null, direction: "none" });
 
   useEffect(() => {
     (async () => {
@@ -61,7 +71,7 @@ export default function GeneratedReports() {
         const list: GeneratedRow[] = (res.requests ?? []).map((r: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
           requestId: String(r.requestId ?? r.id),
           name: String(r.name ?? r.reportName ?? "Report"),
-          status: (r.status ?? "PENDING").toUpperCase(),
+          status: toStatus(r.status),
           appliedFilter: String(r.appliedFilter ?? r.filter ?? "—"),
           downloadedCount: Number(r.downloadedCount ?? r.downloads ?? 0),
         }));
@@ -74,7 +84,8 @@ export default function GeneratedReports() {
     })();
   }, [fetchGeneratedReports]);
 
-  useEffect(() => setPage(1), [q, status, rowsPerPage]);
+  // reset page on filter change
+  useEffect(() => setPage(1), [q, status, rowsPerPage, sort.key, sort.direction]);
 
   const filtered = useMemo(() => {
     const qlc = q.trim().toLowerCase();
@@ -85,11 +96,49 @@ export default function GeneratedReports() {
     });
   }, [rows, q, status]);
 
-  // pagination math
-  const totalRows = filtered.length;
+  // columns (define BEFORE we compute sorted)
+  const cols: DataTableColumn<GeneratedRow>[] = useMemo(() => [
+    { key: "name", header: "Report Name", cell: r => <span className="font-medium">{r.name}</span>, sortBy: "name" },
+    {
+      key: "status",
+      header: "Status",
+      headClassName: "w-[140px]",
+      cell: r => (
+        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${STATUS_TONE[r.status]}`}>
+          {r.status}
+        </span>
+      ),
+      sortBy: "status",
+    },
+    { key: "appliedFilter", header: "Applied Report Filter", cell: r => r.appliedFilter, sortBy: "appliedFilter" },
+    { key: "downloadedCount", header: "Downloaded Count", headClassName: "w-[160px]", align: "right", cell: r => r.downloadedCount, sortBy: "downloadedCount" },
+    {
+      key: "actions",
+      header: <span className="block text-center">Actions</span>,
+      headClassName: "w-[120px]",
+      className: "text-center",
+      sortable: false,
+      cell: r => (
+        <div className="flex items-center justify-center gap-2">
+          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => doDownload(r)} aria-label="Download">
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="destructive" className="h-8 w-8" onClick={() => setToDelete(r)} aria-label="Delete">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ], []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // apply sorting BEFORE pagination (shared helper)
+  const sorted = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
+
+  // pagination (use SORTED)
+  const totalRows = sorted.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
   const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = filtered.slice(startIdx, startIdx + rowsPerPage);
+  const pageRows = sorted.slice(startIdx, startIdx + rowsPerPage);
   const rangeStart = totalRows ? startIdx + 1 : 0;
   const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
 
@@ -100,12 +149,13 @@ export default function GeneratedReports() {
       const list: GeneratedRow[] = (res.requests ?? []).map((r: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
         requestId: String(r.requestId ?? r.id),
         name: String(r.name ?? r.reportName ?? "Report"),
-        status: (r.status ?? "PENDING").toUpperCase(),
+        status: toStatus(r.status),
         appliedFilter: String(r.appliedFilter ?? r.filter ?? "—"),
         downloadedCount: Number(r.downloadedCount ?? r.downloads ?? 0),
       }));
       setRows(list);
       toast.success("Generated reports refreshed");
+      // Intentionally do NOT reset sorting on refresh
     } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       setErr(e?.message || "Failed to refresh");
       toast.error("Failed to refresh");
@@ -136,37 +186,13 @@ export default function GeneratedReports() {
     }
   };
 
-  const cols: DataTableColumn<GeneratedRow>[] = [
-    { key: "name", header: "Report Name", cell: r => <span className="font-medium">{r.name}</span> },
-    {
-      key: "status",
-      header: "Status",
-      headClassName: "w-[140px]",
-      cell: r => (
-        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${STATUS_TONE[r.status]}`}>
-          {r.status}
-        </span>
-      ),
-    },
-    { key: "filter", header: "Applied Report Filter", cell: r => r.appliedFilter },
-    { key: "dl", header: "Downloaded Count", headClassName: "w-[160px]", align: "right", cell: r => r.downloadedCount },
-    {
-      key: "actions",
-      header: <span className="block text-center">Actions</span>,
-      headClassName: "w-[120px]",
-      className: "text-center",
-      cell: r => (
-        <div className="flex items-center justify-center gap-2">
-          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => doDownload(r)} aria-label="Download">
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button size="icon" variant="destructive" className="h-8 w-8" onClick={() => setToDelete(r)} aria-label="Delete">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  const onReset = () => {
+    setQ("");
+    setStatus("__ALL__");
+    setSort({ key: null, direction: "none" }); // also clear sorting
+    setPage(1);
+    setSort({ key: "name", direction: "asc" });
+  };
 
   return (
     <div className="min-h-screen">
@@ -197,8 +223,8 @@ export default function GeneratedReports() {
             </div>
 
             <div className="flex gap-2 md:ml-auto">
-              <Button variant="outline" onClick={() => { setQ(""); setStatus("__ALL__"); }}>Reset</Button>
-              <Button variant="outline" onClick={refresh}>
+              <Button variant="outline" onClick={onReset}>Reset</Button>
+              <Button variant="outline" onClick={refresh} disabled={loading}>
                 <RefreshCcw className="mr-2 h-4 w-4" />
                 Refresh
               </Button>
@@ -211,10 +237,12 @@ export default function GeneratedReports() {
             columns={cols}
             showIndex
             indexHeader="#"
-            startIndex={startIdx}
+            startIndex={startIdx + 1}      // 1-based S.NO per page
             loading={loading}
             error={err}
             emptyMessage="Nothing to show."
+            sort={sort}
+            onSortChange={setSort}
           />
 
           {/* Footer */}

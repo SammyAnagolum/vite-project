@@ -20,7 +20,8 @@ import {
 import Kpi from "@/components/common/Kpi";
 import PageNumbers from "@/components/common/PageNumbers";
 import { AppIcons } from "@/lib/icon-map";
-import type { DataTableColumn } from "@/components/common/DataTable";
+import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
+import { sortRows } from "@/components/common/data-table/sort";
 import DataTable from "@/components/common/DataTable";
 
 /** ------------ Types ------------ */
@@ -72,6 +73,8 @@ export default function SecretExpiryDetails() {
   const [page, setPage] = useState<number>(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const [sort, setSort] = useState<SortState>({ key: null, direction: "none" });
+
   // derived: filtered rows
   const filtered = useMemo(() => {
     const nq = qName.trim().toLowerCase();
@@ -105,13 +108,7 @@ export default function SecretExpiryDetails() {
         ...r,
         expiresIn: r.expiryDate ? daysUntilIST(r.expiryDate) : Number.NaN,
         expiryDateFmt: r.expiryDate ? formatIST(r.expiryDate) : "Not Available",
-      }))
-      .sort((a, b) => {
-        // Sort by "Expires In" ascending, pushing N/A to bottom
-        const ax = Number.isNaN(a.expiresIn) ? Infinity : a.expiresIn;
-        const bx = Number.isNaN(b.expiresIn) ? Infinity : b.expiresIn;
-        return ax - bx;
-      });
+      }));
   }, [qName, qId, qType, fromDate, toDate]);
 
   // KPIs
@@ -128,12 +125,39 @@ export default function SecretExpiryDetails() {
     return { expired, soon, reset24h, mostExpiredType };
   }, [filtered]);
 
+  const cols: DataTableColumn<RowView>[] = useMemo(() => [
+    { key: "name", header: "Entity Name", cell: r => r.name },
+    { key: "id", header: "Entity ID", cell: r => <span className="font-mono text-sm">{r.id}</span> },
+    { key: "type", header: "Type", headClassName: "w-[120px]", cell: r => <TypeBadge type={r.type} /> },
+    { key: "exp", header: "Expiry Date (IST)", headClassName: "w-[200px]", cell: r => r.expiryDateFmt, sortValue: (r) => Number.isNaN(r.expiresIn) ? null : r.expiresIn, },
+    {
+      key: "in",
+      header: "Expires In",
+      headClassName: "w-[140px]",
+      align: "right",
+      cell: r =>
+        Number.isNaN(r.expiresIn) ? (
+          <span className="text-muted-foreground">N/A</span>
+        ) : r.expiresIn < 0 ? (
+          <span className="text-red-600">{r.expiresIn}</span>
+        ) : r.expiresIn <= 10 ? (
+          <span className="text-amber-600">{r.expiresIn}</span>
+        ) : (
+          <span className="text-emerald-600">{r.expiresIn}</span>
+        ),
+      sortValue: (r) => Number.isNaN(r.expiresIn) ? null : r.expiresIn,
+    },
+  ], []);
+
+  const sorted = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
+
   // pagination
-  useEffect(() => setPage(1), [qName, qId, qType, fromDate, toDate, rowsPerPage]);
-  const totalRows = filtered.length;
+  useEffect(() => setPage(1), [qName, qId, qType, fromDate, toDate, rowsPerPage, sort.key, sort.direction]);
+
+  const totalRows = sorted.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
   const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = filtered.slice(startIdx, startIdx + rowsPerPage);
+  const pageRows = sorted.slice(startIdx, startIdx + rowsPerPage);
   const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
   const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
 
@@ -144,6 +168,7 @@ export default function SecretExpiryDetails() {
     setQType("all");
     setFromDate("");
     setToDate("");
+    setSort({ key: "name", direction: "asc" });
   };
   const refresh = () => {
     setIsRefreshing(true);
@@ -162,28 +187,7 @@ export default function SecretExpiryDetails() {
     toCsvAndDownload([header, ...rows], "IAM_Secret_Expiry_Details.csv");
   };
 
-  const cols: DataTableColumn<RowView>[] = [
-    { key: "name", header: "Entity Name", cell: r => r.name },
-    { key: "id", header: "Entity ID", cell: r => <span className="font-mono text-sm">{r.id}</span> },
-    { key: "type", header: "Type", headClassName: "w-[120px]", cell: r => <TypeBadge type={r.type} /> },
-    { key: "exp", header: "Expiry Date (IST)", headClassName: "w-[200px]", cell: r => r.expiryDateFmt },
-    {
-      key: "in",
-      header: "Expires In",
-      headClassName: "w-[140px]",
-      align: "right",
-      cell: r =>
-        Number.isNaN(r.expiresIn) ? (
-          <span className="text-muted-foreground">N/A</span>
-        ) : r.expiresIn < 0 ? (
-          <span className="text-red-600">{r.expiresIn}</span>
-        ) : r.expiresIn <= 10 ? (
-          <span className="text-amber-600">{r.expiresIn}</span>
-        ) : (
-          <span className="text-emerald-600">{r.expiresIn}</span>
-        ),
-    },
-  ];
+
 
   return (
     <div className="min-h-screen">
@@ -257,8 +261,10 @@ export default function SecretExpiryDetails() {
             columns={cols}
             showIndex
             indexHeader="S.NO"
-            startIndex={startIdx + 0} // your page math
+            startIndex={startIdx + 1} // your page math
             emptyMessage="No records match your filters."
+            sort={sort}
+            onSortChange={setSort}
           />
 
           {/* Footer */}
