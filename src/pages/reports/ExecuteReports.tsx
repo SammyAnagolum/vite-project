@@ -198,7 +198,17 @@ export default function ExecuteReports() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <h1 className="text-2xl font-semibold">Reports</h1>
+        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+        <h2 className="text-base font-medium">Execute Reports</h2>
+        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">
+          Search dashboards, choose a time range (quick or custom), and submit report generation.
+        </p>
+      </div>
+
       <div className="mx-auto max-w-7xl py-6">
         <Card className="p-4 md:p-5">
           {/* Filters */}

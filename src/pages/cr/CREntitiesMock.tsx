@@ -304,7 +304,18 @@ export default function CREntitiesMock() {
   }, [selected]);
 
   return (
+
     <div className="">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <h1 className="text-2xl font-semibold">Central Registry</h1>
+        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+        <h2 className="text-base font-medium">All Entities</h2>
+        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">
+          Browse, filter, sort, edit & export registry entities (AA • FIP • FIU).
+        </p>
+      </div>
+
       <div className="mx-auto max-w-7xl py-6">
         {/* KPI cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

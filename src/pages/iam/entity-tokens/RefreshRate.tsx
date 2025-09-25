@@ -315,7 +315,19 @@ export default function RefreshRate() {
   );
 
   return (
-    <div className="min-h-screen">
+    <div className="">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <h1 className="text-2xl font-semibold">IAM</h1>
+        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+        <h2 className="text-base font-medium">Entity Tokens</h2>
+        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+        <h3 className="text-base text-muted-foreground">Refresh Rate</h3>
+        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">
+          Pick a date, see per-entity token activity, drill into daily counts, filter by name/ID/type, and export CSV.
+        </p>
+      </div>
+
       <div className="mx-auto max-w-7xl py-6">
         {/* KPIs */}
         {!selectedEntity && (

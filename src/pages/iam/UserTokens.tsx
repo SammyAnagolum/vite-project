@@ -141,7 +141,17 @@ export default function UserTokens() {
 
 
   return (
-    <div className="min-h-screen">
+    <div className="">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <h1 className="text-2xl font-semibold">IAM</h1>
+        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+        <h2 className="text-base font-medium">User Tokens</h2>
+        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+        <p className="text-sm text-muted-foreground">
+          Browse and search issued user tokens, check status and last activity, take actions (e.g., revoke), and export CSV.
+        </p>
+      </div>
+
       <div className="mx-auto max-w-7xl py-6">
         {/* KPI Cards */}
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
