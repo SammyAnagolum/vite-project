@@ -15,20 +15,17 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Bell, HelpCircle, LogOut, Settings, User, Search as SearchIcon } from "lucide-react";
 import ModeToggle from "../common/ModeToggle";
 
-const ACRONYMS: Record<string, string> = {
-  cr: "CR",
-  iam: "IAM",
-}
+// NEW: bring in our overlays
+import NotificationsSheet, { type NotificationItem } from "./NotificationsSheet";
+import HelpDialog from "./HelpDialog";
+
+const ACRONYMS: Record<string, string> = { cr: "CR", iam: "IAM" };
 
 function titleCase(slug: string) {
-  return slug
-    .split("-")
-    .map(s => s.charAt(0).toUpperCase() + s.slice(1))
-    .join(" ");
+  return slug.split("-").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
 }
-
 function getCase(part: string): string {
-  return ACRONYMS[part.toLowerCase()] ? ACRONYMS[part.toLowerCase()] : titleCase(part)
+  return ACRONYMS[part.toLowerCase()] ? ACRONYMS[part.toLowerCase()] : titleCase(part);
 }
 
 function Breadcrumbs() {
@@ -59,22 +56,34 @@ export default function HeaderBar() {
     [user.name]
   );
 
-  // read environment label from env; fall back to "Sandbox"
+  // environment label
   const envLabel = import.meta.env.VITE_APP_ENV || "Sandbox";
+
+  // --- NEW: notifications state + overlays ---
+  const [notifOpen, setNotifOpen] = React.useState(false);
+  const [helpOpen, setHelpOpen] = React.useState(false);
+
+  const [notifications, setNotifications] = React.useState<NotificationItem[]>(() => seedNotifications());
+  const unreadCount = React.useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
+
+  // Optional: hotkeys (Shift + / opens help)
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "?" || (e.shiftKey && e.key === "/")) setHelpOpen(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
       {/* Left: breadcrumbs */}
       <Breadcrumbs />
 
-      {/* Center: quick search (optional) */}
+      {/* Center: quick search */}
       <div className="relative ml-auto hidden w-72 items-center md:flex">
         <SearchIcon className="pointer-events-none absolute left-2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search…"
-          className="pl-8"
-        // onKeyDown={(e) => e.key === 'k' && openCommandPalette()}
-        />
+        <Input placeholder="Search…" className="pl-8" />
       </div>
 
       <ModeToggle />
@@ -85,10 +94,25 @@ export default function HeaderBar() {
       </span>
 
       {/* Actions */}
-      <Button variant="ghost" size="icon" aria-label="Notifications">
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Notifications"
+        onClick={() => setNotifOpen(true)}
+        className="relative"
+      >
         <Bell className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <span className="absolute right-1 top-1 inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        )}
       </Button>
-      <Button variant="ghost" size="icon" aria-label="Help">
+
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Help"
+        onClick={() => setHelpOpen(true)}
+      >
         <HelpCircle className="h-5 w-5" />
       </Button>
 
@@ -104,7 +128,7 @@ export default function HeaderBar() {
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end">
           <DropdownMenuLabel className="leading-tight">
-            <div className="font-medium text-lg">{user.name}</div>
+            <div className="text-lg font-medium">{user.name}</div>
             <div className="text-base text-muted-foreground">{user.email}</div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -124,6 +148,62 @@ export default function HeaderBar() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* NEW: Overlays */}
+      <NotificationsSheet
+        open={notifOpen}
+        onOpenChange={setNotifOpen}
+        items={notifications}
+        onItemsChange={setNotifications}
+      />
+      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
     </header>
   );
+}
+
+function seedNotifications(): NotificationItem[] {
+  const now = Date.now();
+  const iso = (msAgo: number) => new Date(now - msAgo).toISOString();
+  return [
+    {
+      id: "n1",
+      title: "Report ready",
+      description: "Your IAM Entity Tokens report has finished generating.",
+      time: iso(8 * 60 * 60 * 1000),
+      type: "success",
+      read: false,
+      actionLabel: "Open",
+      actionHref: "/reports/generated",
+    },
+    {
+      id: "n2",
+      title: "Expiring secrets",
+      description: "3 entities have secrets expiring within 7 days.",
+      time: iso(22 * 60 * 60 * 1000),
+      type: "warning",
+      read: false,
+      actionLabel: "Review",
+      actionHref: "/iam/secret-expiry/details",
+    },
+    {
+      id: "n3",
+      title: "New CR telemetry activity",
+      description: "Activity spike detected for FIU-SIMULATOR.",
+      time: iso(3 * 24 * 60 * 60 * 1000),
+      type: "info",
+      read: true,
+      actionLabel: "View",
+      actionHref: "/cr/telemetry",
+    },
+    {
+      id: "n4",
+      title: "Welcome to the new console",
+      description: "We’ve refreshed the UI. Let us know what you think!",
+      time: iso(5 * 24 * 60 * 60 * 1000),
+      type: "system",
+      read: true,
+      actionLabel: "What’s new",
+      actionHref: "/changelog",
+    },
+  ];
 }
