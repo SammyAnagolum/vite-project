@@ -3,9 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -14,8 +11,7 @@ import { Play, RefreshCcw, Search, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 // wire your real API here
 import { useReportsApi } from "@/services/reportsApi"; // fetchDashboards, generateReport
-import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
-import { sortRows } from "@/components/common/data-table/sort";
+import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
 
 type Dashboard = {
@@ -46,10 +42,6 @@ export default function ExecuteReports() {
   const [q, setQ] = useState("");
   const [createdByFilter, setCreatedByFilter] = useState<string>("");
 
-  // pagination
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [page, setPage] = useState(1);
-
   // dialog state
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Dashboard | null>(null);
@@ -60,9 +52,6 @@ export default function ExecuteReports() {
   const [fromTime, setFromTime] = useState<string>(""); // HH:mm
   const [toDate, setToDate] = useState<string>("");
   const [toTime, setToTime] = useState<string>("");
-
-  // sorting (3-state: none -> asc -> desc -> none)
-  const [sort, setSort] = useState<SortState>({ key: null, direction: "none" });
 
   useEffect(() => {
     (async () => {
@@ -84,9 +73,6 @@ export default function ExecuteReports() {
       }
     })();
   }, [fetchDashboards]);
-
-  // reset page when filters change
-  useEffect(() => setPage(1), [q, createdByFilter, rowsPerPage, sort.key, sort.direction]);
 
   const filtered = useMemo(() => {
     const qlc = q.trim().toLowerCase();
@@ -123,17 +109,6 @@ export default function ExecuteReports() {
       ),
     },
   ], []); // columns are static here
-
-  // apply sorting BEFORE pagination
-  const sortedMain = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
-
-  // pagination math (use SORTED)
-  const totalRows = sortedMain.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const startIdx = (page - 1) * rowsPerPage;        // 0-based
-  const pageRows = sortedMain.slice(startIdx, startIdx + rowsPerPage);
-  const rangeStart = totalRows ? startIdx + 1 : 0;  // 1-based for display
-  const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
 
   const refresh = async () => {
     setLoading(true); setErr(null);
@@ -192,9 +167,6 @@ export default function ExecuteReports() {
 
   const onReset = () => {
     setQ(""); setCreatedByFilter("");
-    setSort({ key: null, direction: "none" }); // also reset sort
-    setPage(1);
-    setSort({ key: "name", direction: "asc" });
   };
 
   return (
@@ -237,42 +209,16 @@ export default function ExecuteReports() {
 
           {/* Table */}
           <DataTable<Dashboard>
-            data={pageRows}
+            data={filtered}
             columns={cols}
             showIndex
-            startIndex={startIdx + 1}
+            startIndex={1}
             emptyMessage="No reports match your filters."
             loading={loading}
             error={err}
-            sort={sort}
-            onSortChange={setSort}
+            getRowKey={(r) => r.id || r.dashboardId || r.name}
+            initialSort={{ key: "name", direction: "asc" }}
           />
-
-          {/* Footer */}
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs text-muted-foreground">Rows {rangeStart}-{rangeEnd} of {totalRows}</div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Rows per page</span>
-                <Select value={String(rowsPerPage)} onValueChange={(v) => setRowsPerPage(Number(v))}>
-                  <SelectTrigger className="h-8 w-[84px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage(1)} disabled={page === 1}>First</Button>
-                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Prev</Button>
-                <div className="text-xs tabular-nums">Page {page} of {totalPages}</div>
-                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
-                <Button variant="outline" size="sm" onClick={() => setPage(totalPages)} disabled={page === totalPages}>Last</Button>
-              </div>
-            </div>
-          </div>
         </Card>
       </div>
 

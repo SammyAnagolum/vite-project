@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,24 +9,15 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import {
-  Download,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
-import PageNumbers from "@/components/common/PageNumbers";
 import { AppIcons } from "@/lib/icon-map";
-import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
-import { sortRows } from "@/components/common/data-table/sort";
+import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
+import TypeBadge from "@/components/common/TypeBadge";
+import type { EntityType } from "@/lib/types"
 
 /** ------------ Types ------------ */
-type EntityType = "AA" | "FIP" | "FIU";
-
 type Row = {
   name: string;
   id: string;
@@ -38,7 +29,7 @@ type Row = {
 type RowView = {
   name: string;
   id: string;
-  type: "AA" | "FIP" | "FIU";
+  type: EntityType;
   expiryDateFmt: string;
   expiresIn: number; // NaN allowed
 };
@@ -68,12 +59,7 @@ export default function SecretExpiryDetails() {
   const [fromDate, setFromDate] = useState<string>(""); // YYYY-MM-DD
   const [toDate, setToDate] = useState<string>("");     // YYYY-MM-DD
 
-  // table paging
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-  const [page, setPage] = useState<number>(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const [sort, setSort] = useState<SortState>({ key: null, direction: "none" });
 
   // derived: filtered rows
   const filtered = useMemo(() => {
@@ -149,18 +135,6 @@ export default function SecretExpiryDetails() {
     },
   ], []);
 
-  const sorted = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
-
-  // pagination
-  useEffect(() => setPage(1), [qName, qId, qType, fromDate, toDate, rowsPerPage, sort.key, sort.direction]);
-
-  const totalRows = sorted.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = sorted.slice(startIdx, startIdx + rowsPerPage);
-  const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
-  const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
-
   // actions
   const reset = () => {
     setQName("");
@@ -168,26 +142,11 @@ export default function SecretExpiryDetails() {
     setQType("all");
     setFromDate("");
     setToDate("");
-    setSort({ key: "name", direction: "asc" });
   };
   const refresh = () => {
     setIsRefreshing(true);
     setTimeout(() => setIsRefreshing(false), 500);
   };
-  const downloadCsv = () => {
-    const header = ["S.NO", "Entity Name", "Entity ID", "Type", "Expiry Date (IST)", "Expires In (days)"];
-    const rows = filtered.map((r, i) => [
-      String(i + 1),
-      r.name,
-      r.id,
-      r.type,
-      r.expiryDateFmt,
-      Number.isNaN(r.expiresIn) ? "N/A" : String(r.expiresIn),
-    ]);
-    toCsvAndDownload([header, ...rows], "IAM_Secret_Expiry_Details.csv");
-  };
-
-
 
   return (
     <div className="">
@@ -269,107 +228,18 @@ export default function SecretExpiryDetails() {
 
           {/* Table */}
           <DataTable<RowView>
-            data={pageRows}
+            data={filtered}
             columns={cols}
             showIndex
             indexHeader="S.NO"
-            startIndex={startIdx + 1} // your page math
             emptyMessage="No records match your filters."
-            sort={sort}
-            onSortChange={setSort}
+            getRowKey={(r) => r.id}
+            exportCsvFilename="IAM_Secret_Expiry_Details.csv"
+            initialSort={{ key: "name", direction: "asc" }}
           />
-
-          {/* Footer */}
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Button onClick={downloadCsv}>
-              <Download className="mr-2 h-4 w-4" />
-              Download CSV
-            </Button>
-
-            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
-              <div className="text-xs text-muted-foreground">
-                Rows {rangeStart}-{rangeEnd} of {totalRows}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Rows per page</span>
-                <Select value={String(rowsPerPage)} onValueChange={(v) => setRowsPerPage(Number(v))}>
-                  <SelectTrigger className="h-8 w-[84px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setPage(1)}
-                  disabled={page === 1}
-                  aria-label="First page"
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <PageNumbers page={page} totalPages={totalPages} onChange={setPage} />
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setPage(totalPages)}
-                  disabled={page === totalPages}
-                  aria-label="Last page"
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
         </Card>
       </div>
     </div>
-  );
-}
-
-/** ------------ UI bits (match CR pages) ------------ */
-function TypeBadge({ type }: { type: EntityType }) {
-  const map: Record<EntityType, string> = {
-    AA: "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-900/25 dark:text-indigo-300 dark:ring-indigo-800/40",
-    FIP: "bg-sky-100 text-sky-700 ring-1 ring-sky-200 dark:bg-sky-900/25 dark:text-sky-300 dark:ring-sky-800/40",
-    FIU: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-300 dark:ring-emerald-800/40",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${map[type]}`}>
-      {type}
-    </span>
   );
 }
 
@@ -426,20 +296,4 @@ function daysUntilIST(isoLocalIST: string): number {
   const startExpiryIST = new Date(`${expY}-${expM}-${expD}T00:00:00+05:30`);
 
   return Math.ceil((startExpiryIST.getTime() - startTodayIST.getTime()) / 86400000);
-}
-
-function toCsvAndDownload(matrix: (string | number)[][], filename: string) {
-  const csv = matrix.map((row) => row.map(csvEscape).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function csvEscape(s: string | number) {
-  const str = String(s);
-  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
 }

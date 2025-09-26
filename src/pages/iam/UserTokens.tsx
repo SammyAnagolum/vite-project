@@ -1,15 +1,8 @@
 // src/pages/iam/user-tokens/UserTokens.tsx
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Users,
   TrendingUp,
@@ -17,16 +10,9 @@ import {
   Clock,
   Search,
   RefreshCcw,
-  Download,
-  ChevronsLeft,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsRight,
 } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
-import PageNumbers from "@/components/common/PageNumbers";
-import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
-import { sortRows } from "@/components/common/data-table/sort";
+import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
 
 // ---------------- Types ----------------
@@ -61,19 +47,10 @@ export default function UserTokens() {
   const [qName, setQName] = useState("");
   const [qId, setQId] = useState("");
 
-  // pagination
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-  const [page, setPage] = useState<number>(1);
-
-  const [sort, setSort] = useState<SortState>({ key: "name", direction: "asc" });
-
-  // reset page when filters/page-size change
-  useEffect(() => setPage(1), [qName, qId, rowsPerPage, sort.key, sort.direction]);
-
   const cols: DataTableColumn<UserToken>[] = useMemo(() => [
     { key: "user", header: "User Name", cell: r => r.userName, sortBy: "userName" },
-    { key: "id", header: "User ID", cell: r => <span className="font-mono text-sm">{r.userId}</span>, sortBy: "userId" },
-    { key: "last", header: "Last Token Issued", headClassName: "w-[240px]", cell: r => r.lastTokenIssued, sortValue: (r) => Number.isNaN(r.lastTokenIssued) ? null : r.lastTokenIssued, },
+    { key: "id", header: "User ID", cell: r => <span className="font-mono text-sm">{r.userId}</span>, sortBy: "userId", exportValue: r => r.userId },
+    { key: "last", header: "Last Token Issued", headClassName: "w-[240px]", cell: r => r.lastTokenIssued, sortBy: "lastTokenIssued", exportValue: r => r.lastTokenIssued },
     { key: "count", header: "Tokens Issued", headClassName: "w-[160px]", align: "right", cell: r => r.tokensIssued, sortBy: "tokensIssued" },
   ], []);
 
@@ -97,48 +74,10 @@ export default function UserTokens() {
     return { totalUsers, highVolume, totalTokens, avg };
   }, [filtered]);
 
-  const sortedMain = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
-
-  // pagination math
-  const totalRows = sortedMain.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = sortedMain.slice(startIdx, startIdx + rowsPerPage);
-  const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
-  const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
-
   const resetFilters = () => {
     setQName("");
     setQId("");
-    setSort({ key: "user", direction: "asc" });
   };
-
-  const downloadCsv = () => {
-    const header = [
-      "S.NO",
-      "User Name",
-      "User ID",
-      "Last Token Issued",
-      "Tokens Issued",
-    ];
-    const rows = filtered.map((u, i) => [
-      String(i + 1),
-      u.userName,
-      u.userId,
-      u.lastTokenIssued,
-      String(u.tokensIssued),
-    ]);
-    const csv = [header, ...rows].map((r) => r.map(safeCsv).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "IAM_UserTokens.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-
 
   return (
     <div className="">
@@ -205,84 +144,17 @@ export default function UserTokens() {
 
           {/* Table */}
           <DataTable<UserToken>
-            data={pageRows}
+            data={filtered}
             columns={cols}
             showIndex
-            startIndex={startIdx + 1}
+            startIndex={1}
             emptyMessage="No users match your filters."
-            sort={sort}
-            onSortChange={setSort}
+            getRowKey={(r) => r.userId}
+            exportCsvFilename="IAM_UserTokens.csv"
+            initialSort={{ key: "user", direction: "asc" }}
           />
-
-          {/* Footer / export + pagination */}
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Button onClick={downloadCsv}>
-              <Download className="mr-2 h-4 w-4" />
-              Download CSV
-            </Button>
-
-            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
-              <div className="text-xs text-muted-foreground">
-                Rows {rangeStart}-{rangeEnd} of {totalRows}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Rows per page</span>
-                <Select value={String(rowsPerPage)} onValueChange={(v) => setRowsPerPage(Number(v))}>
-                  <SelectTrigger className="h-8 w-[84px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline" size="icon" className="h-8 w-8"
-                  onClick={() => setPage(1)} disabled={page === 1} aria-label="First page"
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline" size="icon" className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1} aria-label="Previous page"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <PageNumbers page={page} totalPages={totalPages} onChange={setPage} />
-
-                <Button
-                  variant="outline" size="icon" className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages} aria-label="Next page"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline" size="icon" className="h-8 w-8"
-                  onClick={() => setPage(totalPages)} disabled={page === totalPages} aria-label="Last page"
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
         </Card>
       </div>
     </div>
   );
-}
-
-// ---------------- Reusable bits ----------------
-
-function safeCsv(s: string) {
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
 }

@@ -1,23 +1,11 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import {
   Calendar,
   Search,
   RefreshCcw,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   TrendingUp,
   Activity,
   Clock,
@@ -26,9 +14,7 @@ import {
 } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
-import PageNumbers from "@/components/common/PageNumbers";
-import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
-import { sortRows } from "@/components/common/data-table/sort";
+import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
 
 /** ---------------- Types ---------------- */
@@ -131,17 +117,8 @@ export default function RefreshRate() {
   const [qName, setQName] = useState("");
   const [qId, setQId] = useState("");
 
-  // pagination
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-  const [page, setPage] = useState<number>(1);
-
   // detail view toggle
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-
-  const [sort, setSort] = useState<SortState>({ key: "name", direction: "asc" });
-
-  // reset page on filter change
-  useEffect(() => setPage(1), [selectedDate, qName, qId, rowsPerPage, sort.key, sort.direction]);
 
   // Aggregate for the main table by selected date
   type AggregatedRow = {
@@ -195,11 +172,6 @@ export default function RefreshRate() {
     return { highVolume, inactive24h, totalIssued, avgPerEntity };
   }, [aggregated, selectedDate]);
 
-  // when switching view, set an intuitive default sort
-  useEffect(() => {
-    setSort(selectedEntityId ? { key: "date", direction: "desc" } : { key: "name", direction: "asc" });
-  }, [selectedEntityId]);
-
   // columns
   const mainCols: DataTableColumn<AggregatedRow>[] = useMemo(() => [
     {
@@ -226,6 +198,7 @@ export default function RefreshRate() {
       header: "Last Token Issued Timestamp",
       headClassName: "w-[220px]",
       cell: (r) => r.recent_timestamp,
+      exportValue: (r) => r.recent_timestamp,
       sortValue: (r) => Number.isNaN(r.recent_timestamp) ? null : r.recent_timestamp,
     },
     {
@@ -261,52 +234,10 @@ export default function RefreshRate() {
     { key: "t", header: "Total", headClassName: "w-[140px]", align: "right", sortBy: "tokens_total", cell: (r) => <span className="font-medium">{r.tokens_total}</span> },
   ];
 
-  // sort before pagination
-  const sortedMain = useMemo(() => sortRows(aggregated, mainCols, sort), [aggregated, mainCols, sort]);
-
-  // pagination math
-  const totalRows = sortedMain.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = sortedMain.slice(startIdx, startIdx + rowsPerPage);
-  const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
-  const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
-
   const resetFilters = () => {
     setSelectedDate(todayISO());
     setQName("");
     setQId("");
-    setSort(selectedEntityId ? { key: "date", direction: "desc" } : { key: "name", direction: "asc" })
-  };
-
-  const downloadCsv = () => {
-    const header = [
-      "S.NO",
-      "Entity Name",
-      "Entity ID",
-      "Last Token Issued Timestamp",
-      "Tokens Issued",
-      "Tokens Not Issued",
-      "Total Tokens",
-      `For Date: ${selectedDate}`,
-    ];
-    const rows = aggregated.map((r, i) => [
-      String(i + 1),
-      r.entity_name,
-      r.entity_id,
-      r.recent_timestamp,
-      String(r.tokens_issued),
-      String(r.tokens_not_issued),
-      String(r.tokens_total),
-    ]);
-    const csv = [header, ...rows].map((r) => r.map(safeCsv).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `IAM_EntityTokens_RefreshRate_${selectedDate}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const selectedEntity = useMemo(
@@ -414,97 +345,19 @@ export default function RefreshRate() {
           {!selectedEntity ? (
             <>
               <DataTable<AggregatedRow>
-                data={pageRows}
+                data={aggregated}
                 columns={mainCols}
                 showIndex
                 indexHeader="S.NO"
-                startIndex={startIdx + 1}
+                startIndex={1}
                 emptyContent={<EmptyState message="No entities for the selected filters." />}
                 getRowKey={(r) => r.entity_id}
-                sort={sort}
-                onSortChange={setSort}
+                exportCsvFilename={`IAM_EntityTokens_RefreshRate_${selectedDate}.csv`}
+                initialSort={{ key: "name", direction: "asc" }}
               />
-
-              {/* Footer */}
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Button onClick={downloadCsv}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download CSV
-                </Button>
-
-                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
-                  <div className="text-xs text-muted-foreground">
-                    Rows {rangeStart}-{rangeEnd} of {totalRows}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Rows per page</span>
-                    <Select
-                      value={String(rowsPerPage)}
-                      onValueChange={(v) => setRowsPerPage(Number(v))}
-                    >
-                      <SelectTrigger className="h-8 w-[84px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">5</SelectItem>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="25">25</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setPage(1)}
-                      disabled={page === 1}
-                      aria-label="First page"
-                    >
-                      <ChevronsLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      aria-label="Previous page"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-
-                    <PageNumbers page={page} totalPages={totalPages} onChange={setPage} />
-
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                      aria-label="Next page"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setPage(totalPages)}
-                      disabled={page === totalPages}
-                      aria-label="Last page"
-                    >
-                      <ChevronsRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
             </>
           ) : (
-            <EntityDetailCard entity={selectedEntity} detailCols={detailCols} sort={sort} onSortChange={setSort} />
+            <EntityDetailCard entity={selectedEntity} detailCols={detailCols} />
           )}
         </Card>
       </div>
@@ -512,19 +365,13 @@ export default function RefreshRate() {
   );
 }
 
-
-
 /** ---------------- Detail View ---------------- */
 function EntityDetailCard({
   entity,
   detailCols,
-  sort,
-  onSortChange,
 }: {
   entity: EntityRow | null;
   detailCols: DataTableColumn<DetailRow>[];
-  sort: SortState;
-  onSortChange: (s: SortState) => void;
 }) {
   // ✅ Call hooks unconditionally with safe fallbacks
   const details: DetailRow[] = entity?.details ?? EMPTY_DETAILS;
@@ -543,32 +390,8 @@ function EntityDetailCard({
     [details]
   );
 
-  const sortedDetails = useMemo(
-    () => sortRows(details, detailCols, sort),
-    [details, detailCols, sort]
-  );
-
   // Guard rendering/JSX after hooks
   if (!entity) return null;
-
-  const download = () => {
-    const header = ["S.NO", "Date", "Tokens Issued", "Tokens Not Issued", "Total Tokens"];
-    const rows = sortedDetails.map((d, i) => [
-      String(i + 1),
-      d.date,
-      String(d.tokens_issued),
-      String(d.tokens_not_issued),
-      String(d.tokens_total),
-    ]);
-    const csv = [header, ...rows].map((r) => r.map(safeCsv).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `IAM_EntityTokens_${entity.entity_id}_Detail.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <>
@@ -580,23 +403,17 @@ function EntityDetailCard({
       </div>
 
       <DataTable<DetailRow>
-        data={sortedDetails}
+        data={details}
         columns={detailCols}
         showIndex
         indexHeader="S.NO"
         startIndex={1}
         emptyContent={<EmptyState message="No token activity for this entity." />}
         getRowKey={(r) => `${entity.entity_id}-${r.date}`}
-        sort={sort}
-        onSortChange={onSortChange}
+        paginate={false}
+        exportCsvFilename={`IAM_EntityTokens_${entity.entity_id}_Detail.csv`}
+        initialSort={{ key: "date", direction: "desc" }}
       />
-
-      <div className="mt-4">
-        <Button onClick={download}>
-          <Download className="mr-2 h-4 w-4" />
-          Download CSV
-        </Button>
-      </div>
     </>
   );
 }
@@ -618,9 +435,4 @@ function todayISO() {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
-}
-
-function safeCsv(s: string) {
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
 }

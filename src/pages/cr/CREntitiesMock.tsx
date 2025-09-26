@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,12 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import {
-  Download,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Eye,
   PencilLine,
   Trash2,
@@ -43,77 +38,73 @@ import {
 import { Section } from "@/components/common/Section";
 import { KV } from "@/components/common/KV";
 import Kpi from "@/components/common/Kpi";
-import PageNumbers from "@/components/common/PageNumbers";
 import { AppIcons } from "@/lib/icon-map";
-import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
-import { sortRows } from "@/components/common/data-table/sort";
+import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
 import { toast } from "sonner";
+import TypeBadge from "@/components/common/TypeBadge";
+import type { Entity, EntityType } from "@/lib/types";
 
 /** ------------------------------------ Types ------------------------------------ */
-type Row = { name: string; cr_id: string; type: "AA" | "FIP" | "FIU" };
-type FilterType = "all" | Row["type"];
+type FilterType = "all" | EntityType;
 
 type EntityDetails = {
   name: string;
   id: string;
-  type: Row["type"];
+  type: EntityType;
   spocEmail: string;
   baseUrl: string;
   ips: string | number;
 };
 
 /** ------------------------ Legacy + Given Mock Data (merged) -------------------- */
-const BASE_ROWS: Row[] = [
-  { name: "test Laboratories India Private Limited", cr_id: "test-fip-10", type: "FIP" },
-  { name: "FIP-SIMULATOR", cr_id: "FIP-SIMULATOR-09", type: "FIP" },
-  { name: "AA-SIMULATOR", cr_id: "AA-SIMULATOR", type: "AA" },
-  { name: "FIP-SIMULATOR", cr_id: "FIP-SIMULATOR", type: "FIP" },
-  { name: "FIU-SIMULATOR", cr_id: "afpl-FIU", type: "FIU" },
-  { name: "Test-simulator", cr_id: "Test-simulator10", type: "FIP" },
-  { name: "Test-simulator-updated", cr_id: "Test-simulator", type: "FIP" },
-  { name: "FIP-SIMULATOR", cr_id: "FIP-SIMULATOR-21", type: "FIP" },
-  { name: "FIP-SIMULATOR", cr_id: "FIP-SIMULATOR5", type: "FIP" },
-  { name: "FIU-SIMULATOR", cr_id: "FIU-SIMULATOR", type: "FIU" },
+const DATA_ROWS: Entity[] = [
+  { name: "test Laboratories India Private Limited", id: "test-fip-10", type: "FIP" },
+  { name: "FIP-SIMULATOR", id: "FIP-SIMULATOR-09", type: "FIP" },
+  { name: "AA-SIMULATOR", id: "AA-SIMULATOR", type: "AA" },
+  { name: "FIP-SIMULATOR", id: "FIP-SIMULATOR", type: "FIP" },
+  { name: "FIU-SIMULATOR", id: "afpl-FIU", type: "FIU" },
+  { name: "Test-simulator", id: "Test-simulator10", type: "FIP" },
+  { name: "Test-simulator-updated", id: "Test-simulator", type: "FIP" },
+  { name: "FIP-SIMULATOR", id: "FIP-SIMULATOR-21", type: "FIP" },
+  { name: "FIP-SIMULATOR", id: "FIP-SIMULATOR5", type: "FIP" },
+  { name: "FIU-SIMULATOR", id: "FIU-SIMULATOR", type: "FIU" },
+  { name: "FIP-SIMULATOR-29", id: "FIP-SIMULATOR-32", type: "FIP" },
+  { name: "FIU-SIMULATOR", id: "afpl-FIU", type: "FIU" },
+  { name: "FIU-SIMULATOR", id: "HDFC-FIP", type: "FIU" },
+  { name: "FIU-SIMULATOR", id: "FIU-SIMULATOR", type: "FIU" },
+  { name: "FIP-SIMULATOR-29", id: "FIP-SIMULATOR-33", type: "FIP" },
+  { name: "AA-SIMULATOR", id: "AA-SIMULATOR-01", type: "AA" },
+  { name: "FIP-BANK-HDFC", id: "HDFC-FIP-001", type: "FIP" },
+  { name: "FIU-BANK-ICICI", id: "ICICI-FIU-001", type: "FIU" },
+  { name: "AA-BANK-SBI", id: "SBI-AA-001", type: "AA" },
+  { name: "FIP-AXIS-BANK", id: "AXIS-FIP-002", type: "FIP" },
+  { name: "FIU-KOTAK-BANK", id: "KOTAK-FIU-001", type: "FIU" },
+  { name: "AA-FINVU", id: "FINVU-AA-001", type: "AA" },
+  { name: "FIP-YES-BANK", id: "YES-FIP-001", type: "FIP" },
+  { name: "FIU-INDUSIND", id: "INDUSIND-FIU-001", type: "FIU" },
+  { name: "AA-PERFIOS", id: "PERFIOS-AA-001", type: "AA" },
+  { name: "FIP-BOI", id: "BOI-FIP-001", type: "FIP" },
+  { name: "FIU-PNB", id: "PNB-FIU-001", type: "FIU" },
+  { name: "AA-COOKIEJAR", id: "COOKIEJAR-AA-001", type: "AA" },
+  { name: "FIP-CANARA-BANK", id: "CANARA-FIP-001", type: "FIP" },
+  { name: "FIU-UNION-BANK", id: "UNION-FIU-001", type: "FIU" },
+  { name: "AA-ONEMONEY", id: "ONEMONEY-AA-001", type: "AA" },
+  { name: "FIP-FEDERAL-BANK", id: "FEDERAL-FIP-001", type: "FIP" },
+  { name: "FIU-KARUR-VYSYA", id: "KARUR-FIU-001", type: "FIU" },
+  { name: "AA-ANUMATI", id: "ANUMATI-AA-001", type: "AA" },
+  { name: "FIP-SOUTH-INDIAN", id: "SIB-FIP-001", type: "FIP" },
 ];
 
-const EXTRA_ROWS: Row[] = [
-  { name: "FIP-SIMULATOR-29", cr_id: "FIP-SIMULATOR-32", type: "FIP" },
-  { name: "FIU-SIMULATOR", cr_id: "afpl-FIU", type: "FIU" },
-  { name: "FIU-SIMULATOR", cr_id: "HDFC-FIP", type: "FIU" },
-  { name: "FIU-SIMULATOR", cr_id: "FIU-SIMULATOR", type: "FIU" },
-  { name: "FIP-SIMULATOR-29", cr_id: "FIP-SIMULATOR-33", type: "FIP" },
-  { name: "AA-SIMULATOR", cr_id: "AA-SIMULATOR-01", type: "AA" },
-  { name: "FIP-BANK-HDFC", cr_id: "HDFC-FIP-001", type: "FIP" },
-  { name: "FIU-BANK-ICICI", cr_id: "ICICI-FIU-001", type: "FIU" },
-  { name: "AA-BANK-SBI", cr_id: "SBI-AA-001", type: "AA" },
-  { name: "FIP-AXIS-BANK", cr_id: "AXIS-FIP-002", type: "FIP" },
-  { name: "FIU-KOTAK-BANK", cr_id: "KOTAK-FIU-001", type: "FIU" },
-  { name: "AA-FINVU", cr_id: "FINVU-AA-001", type: "AA" },
-  { name: "FIP-YES-BANK", cr_id: "YES-FIP-001", type: "FIP" },
-  { name: "FIU-INDUSIND", cr_id: "INDUSIND-FIU-001", type: "FIU" },
-  { name: "AA-PERFIOS", cr_id: "PERFIOS-AA-001", type: "AA" },
-  { name: "FIP-BOI", cr_id: "BOI-FIP-001", type: "FIP" },
-  { name: "FIU-PNB", cr_id: "PNB-FIU-001", type: "FIU" },
-  { name: "AA-COOKIEJAR", cr_id: "COOKIEJAR-AA-001", type: "AA" },
-  { name: "FIP-CANARA-BANK", cr_id: "CANARA-FIP-001", type: "FIP" },
-  { name: "FIU-UNION-BANK", cr_id: "UNION-FIU-001", type: "FIU" },
-  { name: "AA-ONEMONEY", cr_id: "ONEMONEY-AA-001", type: "AA" },
-  { name: "FIP-FEDERAL-BANK", cr_id: "FEDERAL-FIP-001", type: "FIP" },
-  { name: "FIU-KARUR-VYSYA", cr_id: "KARUR-FIU-001", type: "FIU" },
-  { name: "AA-ANUMATI", cr_id: "ANUMATI-AA-001", type: "AA" },
-  { name: "FIP-SOUTH-INDIAN", cr_id: "SIB-FIP-001", type: "FIP" },
-];
-
-// merged & de-duped by cr_id
-const INITIAL_ROWS: Row[] = (() => {
-  const map = new Map<string, Row>();
-  [...BASE_ROWS, ...EXTRA_ROWS].forEach((r) => map.set(r.cr_id, r));
+// merged & de-duped by id
+const INITIAL_ROWS: Entity[] = (() => {
+  const map = new Map<string, Entity>();
+  DATA_ROWS.forEach((r) => map.set(r.id, r));
   return Array.from(map.values());
 })();
 
 /** ----------------------------- Fake details per type --------------------------- */
-const TYPE_DEFAULTS: Record<Row["type"], Omit<EntityDetails, "name" | "id">> = {
+const TYPE_DEFAULTS: Record<EntityType, Omit<EntityDetails, "name" | "id">> = {
   FIP: {
     type: "FIP",
     spocEmail: "contact@fip.example.com",
@@ -137,28 +128,22 @@ const TYPE_DEFAULTS: Record<Row["type"], Omit<EntityDetails, "name" | "id">> = {
 /** ------------------------------------ Page ------------------------------------ */
 export default function CREntitiesMock() {
   // table rows become mutable so Edit/Delete can demo changes
-  const [rows, setRows] = useState<Row[]>(INITIAL_ROWS);
+  const [rows, setRows] = useState<Entity[]>(INITIAL_ROWS);
 
   // filters
   const [qName, setQName] = useState("");
   const [qId, setQId] = useState("");
   const [qType, setQType] = useState<FilterType>("all");
 
-  // pagination
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-  const [page, setPage] = useState<number>(1);
-
   // ui state
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selected, setSelected] = useState<Row | null>(null);
-
-  const [sort, setSort] = useState<SortState>({ key: null, direction: "none" });
+  const [selected, setSelected] = useState<Entity | null>(null);
 
   // edit form (very small demo)
-  const [editForm, setEditForm] = useState<{ name: string; type: Row["type"]; spocEmail: string; baseUrl: string }>({
+  const [editForm, setEditForm] = useState<{ name: string; type: EntityType; spocEmail: string; baseUrl: string }>({
     name: "",
     type: "FIP",
     spocEmail: "",
@@ -171,7 +156,7 @@ export default function CREntitiesMock() {
     const iq = qId.trim().toLowerCase();
     return rows.filter((r) => {
       const byName = !nq || r.name.toLowerCase().includes(nq);
-      const byId = !iq || r.cr_id.toLowerCase().includes(iq);
+      const byId = !iq || r.id.toLowerCase().includes(iq);
       const byType = qType === "all" || r.type === qType;
       return byName && byId && byType;
     });
@@ -186,14 +171,9 @@ export default function CREntitiesMock() {
     return { total, byAA, byFIP, byFIU };
   }, [filtered]);
 
-  // reset to page 1 when filters or rowsPerPage change
-  useEffect(() => {
-    setPage(1);
-  }, [qName, qId, qType, rowsPerPage, sort.key, sort.direction]);
-
-  const cols: DataTableColumn<Row>[] = useMemo(() => [
+  const cols: DataTableColumn<Entity>[] = useMemo(() => [
     { key: "name", header: "Entity Name", cell: r => r.name, sortBy: "name" },
-    { key: "cr_id", header: "Entity ID", cell: r => <span className="font-mono text-sm">{r.cr_id}</span>, sortBy: "cr_id" },
+    { key: "id", header: "Entity ID", cell: r => <span className="font-mono text-sm">{r.id}</span>, sortBy: "id" },
     { key: "type", header: "Type", headClassName: "w-[120px]", cell: r => <TypeBadge type={r.type} />, sortBy: "type" },
     {
       key: "actions",
@@ -217,21 +197,10 @@ export default function CREntitiesMock() {
     },
   ], []);
 
-  const sorted = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
-
-  // pagination math
-  const totalRows = sorted.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = sorted.slice(startIdx, startIdx + rowsPerPage);
-  const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
-  const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
-
   const resetFilters = () => {
     setQName("");
     setQId("");
     setQType("all");
-    setSort({ key: "name", direction: "asc" })
   };
 
   const refresh = () => {
@@ -239,26 +208,13 @@ export default function CREntitiesMock() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const downloadCsv = () => {
-    const header = ["S.NO", "Entity Name", "Entity ID", "Type"];
-    const rowsCsv = filtered.map((r, i) => [String(i + 1), r.name, r.cr_id, r.type]);
-    const csv = [header, ...rowsCsv].map((r) => r.map(safeCsv).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "CR_All_Entities.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   /** ---------- Actions ---------- */
-  const openView = (row: Row) => {
+  const openView = (row: Entity) => {
     setSelected(row);
     setViewOpen(true);
   };
 
-  const openEdit = (row: Row) => {
+  const openEdit = (row: Entity) => {
     const defaults = TYPE_DEFAULTS[row.type];
     setEditForm({
       name: row.name,
@@ -274,20 +230,20 @@ export default function CREntitiesMock() {
     if (!selected) return;
     setRows((prev) =>
       prev.map((r) =>
-        r.cr_id === selected.cr_id ? { ...r, name: editForm.name, type: editForm.type } : r
+        r.id === selected.id ? { ...r, name: editForm.name, type: editForm.type } : r
       )
     );
     setEditOpen(false);
   };
 
-  const openDelete = (row: Row) => {
+  const openDelete = (row: Entity) => {
     setSelected(row);
     setConfirmOpen(true);
   };
 
   const confirmDelete = () => {
     if (!selected) return;
-    setRows((prev) => prev.filter((r) => r.cr_id !== selected.cr_id));
+    setRows((prev) => prev.filter((r) => r.id !== selected.id));
     setConfirmOpen(false);
   };
 
@@ -297,7 +253,7 @@ export default function CREntitiesMock() {
     const d = TYPE_DEFAULTS[selected.type];
     return {
       name: selected.name,
-      id: selected.cr_id,
+      id: selected.id,
       type: selected.type,
       spocEmail: d.spocEmail,
       baseUrl: d.baseUrl,
@@ -396,93 +352,14 @@ export default function CREntitiesMock() {
           </div>
 
           {/* Table */}
-          <DataTable<Row>
-            data={pageRows}
+          <DataTable<Entity>
+            data={filtered}
             columns={cols}
             showIndex
             indexHeader="S.NO"
-            startIndex={startIdx + 1}
-            sort={sort}
-            onSortChange={setSort}
+            startIndex={1}
+            exportCsvFilename="CR_All_Entities.csv"
           />
-
-          {/* Footer: Download + Pagination */}
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Button onClick={downloadCsv}>
-              <Download className="mr-2 h-4 w-4" />
-              Download CSV
-            </Button>
-
-            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
-              <div className="text-xs text-muted-foreground">
-                Rows {rangeStart}-{rangeEnd} of {totalRows}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Rows per page</span>
-                <Select
-                  value={String(rowsPerPage)}
-                  onValueChange={(v) => setRowsPerPage(Number(v))}
-                >
-                  <SelectTrigger className="h-8 w-[84px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage(1)}
-                  disabled={page === 1}
-                  aria-label="First page"
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <PageNumbers page={page} totalPages={totalPages} onChange={setPage} />
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage(totalPages)}
-                  disabled={page === totalPages}
-                  aria-label="Last page"
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
         </Card>
       </div>
 
@@ -578,7 +455,7 @@ export default function CREntitiesMock() {
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Type</label>
               <Select
                 value={editForm.type}
-                onValueChange={(v) => setEditForm((f) => ({ ...f, type: v as Row["type"] }))}
+                onValueChange={(v) => setEditForm((f) => ({ ...f, type: v as EntityType }))}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -638,21 +515,3 @@ export default function CREntitiesMock() {
   );
 }
 
-/** --- UI bits --- */
-function TypeBadge({ type }: { type: Row["type"] }) {
-  const map: Record<Row["type"], string> = {
-    AA: "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-900/25 dark:text-indigo-300 dark:ring-indigo-800/40",
-    FIP: "bg-sky-100 text-sky-700 ring-1 ring-sky-200 dark:bg-sky-900/25 dark:text-sky-300 dark:ring-sky-800/40",
-    FIU: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-300 dark:ring-emerald-800/40",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${map[type]}`}>
-      {type}
-    </span>
-  );
-}
-
-function safeCsv(s: string) {
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}

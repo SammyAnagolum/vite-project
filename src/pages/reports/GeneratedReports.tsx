@@ -9,13 +9,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
 import { Download, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useReportsApi } from "@/services/reportsApi"; // fetchGeneratedReports, downloadReport, deleteReport
 import DataTable from "@/components/common/DataTable";
-import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
-import { sortRows } from "@/components/common/data-table/sort";
+import type { DataTableColumn } from "@/components/common/data-table/types";
 
 type GeneratedRow = {
   requestId: string;
@@ -53,15 +51,8 @@ export default function GeneratedReports() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<StatusFilter>("__ALL__");
 
-  // pagination
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [page, setPage] = useState(1);
-
   // delete confirm
   const [toDelete, setToDelete] = useState<GeneratedRow | null>(null);
-
-  // sorting (3-state: none → asc → desc → none)
-  const [sort, setSort] = useState<SortState>({ key: null, direction: "none" });
 
   useEffect(() => {
     (async () => {
@@ -83,9 +74,6 @@ export default function GeneratedReports() {
       }
     })();
   }, [fetchGeneratedReports]);
-
-  // reset page on filter change
-  useEffect(() => setPage(1), [q, status, rowsPerPage, sort.key, sort.direction]);
 
   const filtered = useMemo(() => {
     const qlc = q.trim().toLowerCase();
@@ -130,17 +118,6 @@ export default function GeneratedReports() {
       ),
     },
   ], []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // apply sorting BEFORE pagination (shared helper)
-  const sorted = useMemo(() => sortRows(filtered, cols, sort), [filtered, cols, sort]);
-
-  // pagination (use SORTED)
-  const totalRows = sorted.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = sorted.slice(startIdx, startIdx + rowsPerPage);
-  const rangeStart = totalRows ? startIdx + 1 : 0;
-  const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
 
   const refresh = async () => {
     setLoading(true); setErr(null);
@@ -189,9 +166,6 @@ export default function GeneratedReports() {
   const onReset = () => {
     setQ("");
     setStatus("__ALL__");
-    setSort({ key: null, direction: "none" }); // also clear sorting
-    setPage(1);
-    setSort({ key: "name", direction: "asc" });
   };
 
   return (
@@ -243,43 +217,18 @@ export default function GeneratedReports() {
 
           {/* Table */}
           <DataTable<GeneratedRow>
-            data={pageRows}
+            data={filtered}
             columns={cols}
             showIndex
             indexHeader="#"
-            startIndex={startIdx + 1}      // 1-based S.NO per page
+            startIndex={1}      // 1-based S.NO per page
             loading={loading}
             error={err}
             emptyMessage="Nothing to show."
-            sort={sort}
-            onSortChange={setSort}
+            getRowKey={(r) => r.requestId}
+            initialSort={{ key: "name", direction: "asc" }}
+            exportCsvFilename="Generated_Reports.csv" // ← optional
           />
-
-          {/* Footer */}
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs text-muted-foreground">Rows {rangeStart}-{rangeEnd} of {totalRows}</div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Rows per page</span>
-                <Select value={String(rowsPerPage)} onValueChange={(v) => setRowsPerPage(Number(v))}>
-                  <SelectTrigger className="h-8 w-[84px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage(1)} disabled={page === 1}>First</Button>
-                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Prev</Button>
-                <div className="text-xs tabular-nums">Page {page} of {totalPages}</div>
-                <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next</Button>
-                <Button variant="outline" size="sm" onClick={() => setPage(totalPages)} disabled={page === totalPages}>Last</Button>
-              </div>
-            </div>
-          </div>
         </Card>
       </div>
 

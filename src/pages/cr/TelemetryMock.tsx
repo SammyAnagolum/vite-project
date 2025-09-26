@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,26 +9,16 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import {
-  Download,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
-import PageNumbers from "@/components/common/PageNumbers";
 import { AppIcons } from "@/lib/icon-map";
-import type { DataTableColumn, SortState } from "@/components/common/data-table/types";
-import { sortRows } from "@/components/common/data-table/sort";
+import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
+import TypeBadge from "@/components/common/TypeBadge";
+import type { Entity, EntityType } from "@/lib/types";
 
 /** -------- Types -------- */
-type EntityType = "AA" | "FIP" | "FIU";
-type Entity = { name: string; id: string; type: EntityType };
-
 type TelemetryEvent = {
   entity_id: string;
   call_count: number;
@@ -110,11 +100,7 @@ export default function CRTelemetryMock() {
   const [qType, setQType] = useState<"all" | EntityType>("all");
   const [dateStr, setDateStr] = useState<string>(toISODate(new Date())); // default = today
 
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-  const [page, setPage] = useState<number>(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const [sort, setSort] = useState<SortState>({ key: "name", direction: "asc" });
 
   // mock data (re-gen on refresh)
   const [{ events, lastByEntity }, setMock] = useState(() => generateTelemetry());
@@ -172,11 +158,6 @@ export default function CRTelemetryMock() {
   // drill-in state
   const [drillEntity, setDrillEntity] = useState<{ id: string; name: string } | null>(null);
 
-  // when switching view, set an intuitive default sort
-  useEffect(() => {
-    setSort(drillEntity ? { key: "date", direction: "desc" } : { key: "name", direction: "asc" });
-  }, [drillEntity]);
-
   // drill-in rows (per-date call counts for selected entity)
   const drillRows = useMemo(() => {
     if (!drillEntity) return [];
@@ -191,9 +172,6 @@ export default function CRTelemetryMock() {
   }, [drillEntity, events]);
 
   const drillTotal = useMemo(() => drillRows.reduce((s, r) => s + r.call_count, 0), [drillRows]);
-
-  // pagination reset
-  useEffect(() => setPage(1), [qName, qId, qType, dateStr, rowsPerPage, drillEntity, sort.key, sort.direction]);
 
   // table columns
   type DrillRow = { date: string; call_count: number };
@@ -254,44 +232,11 @@ export default function CRTelemetryMock() {
     },
   ], []);
 
-  // sort before pagination (view-aware)
-  const sortedMain = useMemo(() => sortRows(rowsMain, mainCols, sort), [rowsMain, mainCols, sort]);
-  const sortedDrill = useMemo(() => sortRows(drillRows, drillCols, sort), [drillRows, drillCols, sort]);
-  const source = drillEntity ? sortedDrill : sortedMain;
-
-  const totalRows = source.length;
-  const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
-  const startIdx = (page - 1) * rowsPerPage;
-  const pageRows = source.slice(startIdx, startIdx + rowsPerPage);
-  const rangeStart = totalRows === 0 ? 0 : startIdx + 1;
-  const rangeEnd = Math.min(startIdx + rowsPerPage, totalRows);
-
-  // CSV download (context-aware: main vs drill)
-  function downloadCsv() {
-    if (drillEntity) {
-      const header = ["S.NO", "Date", "Fetch Count"];
-      const rows = drillRows.map((r, i) => [String(i + 1), r.date, String(r.call_count)]);
-      toCsvAndDownload([header, ...rows], `CR_Telemetry_${drillEntity.name}.csv`);
-    } else {
-      const header = ["S.NO", "Entity Name", "Entity ID", "Type", "Recent Fetch Date", "Fetch Count"];
-      const rows = rowsMain.map((r, i) => [
-        String(i + 1),
-        r.name,
-        r.entity_id,
-        r.type,
-        r.recent_fetch_time === "-" ? "-" : r.recent_fetch_time,
-        String(r.call_count),
-      ]);
-      toCsvAndDownload([header, ...rows], `CR_Telemetry_${dateStr || "all"}.csv`);
-    }
-  }
-
   const resetFilters = () => {
     setQName("");
     setQId("");
     setQType("all");
     setDateStr(toISODate(new Date()));
-    setSort(drillEntity ? { key: "date", direction: "desc" } : { key: "name", direction: "asc" });
   };
 
   return (
@@ -397,121 +342,29 @@ export default function CRTelemetryMock() {
           {/* Table via DataTable */}
           {!drillEntity ? (
             <DataTable<RowMain>
-              data={pageRows as RowMain[]}
+              data={rowsMain}
               columns={mainCols}
               showIndex
               indexHeader="S.NO"
-              startIndex={startIdx + 1}
               emptyContent={<EmptyState message="No records match your filters." />}
               getRowKey={(r) => r.entity_id}
-              sort={sort}
-              onSortChange={setSort}
+              exportCsvFilename={`CR_Telemetry_${dateStr || "all"}.csv`}
             />
           ) : (
             <DataTable<{ date: string; call_count: number }>
-              data={pageRows as { date: string; call_count: number }[]}
+              data={drillRows as { date: string; call_count: number }[]}
               columns={drillCols}
               showIndex
               indexHeader="S.NO"
-              startIndex={startIdx + 1}
               emptyContent={<EmptyState message="No fetches recorded for this entity yet." />}
               getRowKey={(r) => `d-${r.date}`}
-              sort={sort}
-              onSortChange={setSort}
+              exportCsvFilename={`CR_Telemetry_${drillEntity?.name ?? "Entity"}.csv`}
             />
           )}
 
-          {/* Footer: Download + Pagination */}
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Button onClick={downloadCsv}>
-              <Download className="mr-2 h-4 w-4" />
-              Download CSV
-            </Button>
-
-            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
-              <div className="text-xs text-muted-foreground">
-                Rows {rangeStart}-{rangeEnd} of {totalRows}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Rows per page</span>
-                <Select value={String(rowsPerPage)} onValueChange={(v) => setRowsPerPage(Number(v))}>
-                  <SelectTrigger className="h-8 w-[84px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage(1)}
-                  disabled={page === 1}
-                  aria-label="First page"
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <PageNumbers page={page} totalPages={totalPages} onChange={setPage} />
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage(totalPages)}
-                  disabled={page === totalPages}
-                  aria-label="Last page"
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
         </Card>
       </div>
     </div>
-  );
-}
-
-/** -------- UI bits (same tone/style as Entities) -------- */
-function TypeBadge({ type }: { type: EntityType }) {
-  const map: Record<EntityType, string> = {
-    AA: "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-900/25 dark:text-indigo-300 dark:ring-indigo-800/40",
-    FIP: "bg-sky-100 text-sky-700 ring-1 ring-sky-200 dark:bg-sky-900/25 dark:text-sky-300 dark:ring-sky-800/40",
-    FIU: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-300 dark:ring-emerald-800/40",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${map[type]}`}>
-      {type}
-    </span>
   );
 }
 
@@ -521,21 +374,6 @@ function toISODate(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const da = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${da}`;
-}
-
-function toCsvAndDownload(matrix: string[][], filename: string) {
-  const csv = matrix.map((row) => row.map(csvEscape).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function csvEscape(s: string) {
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 // tiny seeded RNG so refresh feels different but deterministic-ish

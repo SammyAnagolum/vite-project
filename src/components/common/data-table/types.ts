@@ -13,8 +13,9 @@ export type DataTableColumn<T> = {
 
     /** sorting (optional) */
     sortable?: boolean; // default true
-    sortBy?: keyof T | string; // data key to read when sorting (fallback = key)
+    sortBy?: keyof T | ((row: T) => string | number | Date); // data key to read when sorting (fallback = key)
     sortValue?: (row: T) => unknown; // custom accessor (overrides sortBy)
+    exportValue?: (row: T, rowIndex: number) => string | number | boolean | Date | null;
 
     /** visuals */
     headClassName?: string;
