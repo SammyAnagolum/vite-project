@@ -10,6 +10,7 @@ import RefreshRatePage from "./pages/iam/entity-tokens/RefreshRatePage";
 import GeneratedReportsPage from "./pages/reports/GeneratedReportsPage";
 import ExecuteReportsPage from "./pages/reports/ExecuteReportsPage";
 import PreferencesPage from "./pages/settings/PreferencesPage";
+import ProfilePage from "./pages/profile/ProfilePage";
 
 function Fallback() {
   return (
@@ -47,6 +48,9 @@ export default function App() {
 
           {/* Settings */}
           <Route path="/settings" element={<PreferencesPage />} />
+
+          {/* Profile */}
+          <Route path="/profile" element={<ProfilePage />} />
 
           <Route path="*" element={<NotFound />} />
         </Route>
