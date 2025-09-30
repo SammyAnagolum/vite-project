@@ -9,7 +9,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { HelpCircle, RefreshCw } from "lucide-react";
+import { HelpCircle, Maximize2, Minimize2, RefreshCw } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import { AppIcons } from "@/lib/icon-map";
 import type { DataTableColumn } from "@/components/common/data-table/types";
@@ -61,6 +61,9 @@ export default function SecretExpiryDetails() {
   const [toDate, setToDate] = useState<string>("");     // YYYY-MM-DD
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Focus mode (hide header/KPIs; keep toggle visible)
+  const [focusMode, setFocusMode] = useState<boolean>(false);
 
   // derived: filtered rows
   const filtered = useMemo(() => {
@@ -151,42 +154,68 @@ export default function SecretExpiryDetails() {
 
   return (
     <div className="">
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <h1 className="text-2xl font-semibold">IAM</h1>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <h2 className="text-base font-medium">Secret Expiry</h2>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <div className="flex items-center gap-1.5">
-          <h3 className="text-base text-muted-foreground">Expiry Details</h3>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground cursor-help"
-                  aria-label="About this page"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="start" className="">
-                Filter entities by name/ID/type and date range, view IST expiry dates & days remaining, and export CSV.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      {!focusMode && (
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+          <h1 className="text-2xl font-semibold">IAM</h1>
+          <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+          <h2 className="text-base font-medium">Secret Expiry</h2>
+          <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-base text-muted-foreground">Expiry Details</h3>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground cursor-help"
+                    aria-label="About this page"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="start" className="">
+                  Filter entities by name/ID/type and date range, view IST expiry dates & days remaining, and export CSV.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="mx-auto max-w-7xl py-6">
+      <div className="mx-auto max-w-7xl py-4">
         {/* KPI cards */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi title="Already Expired" value={kpis.expired} tone="red" icon={<AppIcons.TriangleAlert className="h-9 w-9" />} />
-          <Kpi title="Expiring ≤ 10 days" value={kpis.soon} tone="amber" icon={<AppIcons.CalendarClock className="h-9 w-9" />} />
-          <Kpi title="Reset (last 24h)" value={kpis.reset24h} tone="sky" icon={<AppIcons.RefreshCcw className="h-9 w-9" />} />
-          <Kpi title="Most Expired Type" value={kpis.mostExpiredType} tone="indigo" icon={<AppIcons.ShieldAlert className="h-9 w-9" />} />
-        </div>
+        {!focusMode && (
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Kpi title="Already Expired" value={kpis.expired} tone="red" icon={<AppIcons.TriangleAlert className="h-9 w-9" />} />
+            <Kpi title="Expiring ≤ 10 days" value={kpis.soon} tone="amber" icon={<AppIcons.CalendarClock className="h-9 w-9" />} />
+            <Kpi title="Reset (last 24h)" value={kpis.reset24h} tone="sky" icon={<AppIcons.RefreshCcw className="h-9 w-9" />} />
+            <Kpi title="Most Expired Type" value={kpis.mostExpiredType} tone="indigo" icon={<AppIcons.ShieldAlert className="h-9 w-9" />} />
+          </div>
+        )}
 
         <Card className="relative p-4 md:p-5">
+          {/* Focus toggle – always visible */}
+          <div className={"absolute right-1 top-1 z-20"}>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 not-hover:text-muted-foreground"
+                    aria-pressed={focusMode}
+                    aria-label={focusMode ? "Exit focus mode" : "Enter focus mode"}
+                    onClick={() => setFocusMode(v => !v)}
+                  >
+                    {focusMode ? <Minimize2 className="h-8 w-8" /> : <Maximize2 className="h-8 w-8" size={8} />}
+                    <span className="sr-only">{focusMode ? "Exit focus mode" : "Enter focus mode"}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{focusMode ? "Exit focus" : "Focus (hide headers)"}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
           {/* Filters */}
           <div className="mb-4 grid gap-3 md:grid-cols-12 md:items-end">
             <div className="md:col-span-2">

@@ -11,6 +11,8 @@ import {
   Search,
   RefreshCcw,
   HelpCircle,
+  Minimize2,
+  Maximize2,
 } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import type { DataTableColumn } from "@/components/common/data-table/types";
@@ -49,6 +51,9 @@ export default function UserTokens() {
   const [qName, setQName] = useState("");
   const [qId, setQId] = useState("");
 
+  // Focus mode (hide header/KPIs; keep toggle visible)
+  const [focusMode, setFocusMode] = useState<boolean>(false);
+
   const cols: DataTableColumn<UserToken>[] = useMemo(() => [
     { key: "user", header: "User Name", cell: r => r.userName, sortBy: "userName" },
     { key: "id", header: "User ID", cell: r => <span className="font-mono text-sm">{r.userId}</span>, sortBy: "userId", exportValue: r => r.userId },
@@ -83,40 +88,66 @@ export default function UserTokens() {
 
   return (
     <div className="">
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <h1 className="text-2xl font-semibold">IAM</h1>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <div className="flex items-center gap-1.5">
-          <h2 className="text-base font-medium">User Tokens</h2>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground cursor-help"
-                  aria-label="About this page"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="start" className="">
-                Browse and search issued user tokens, check status and last activity, take actions (e.g., revoke), and export CSV.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      {!focusMode && (
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+          <h1 className="text-2xl font-semibold">IAM</h1>
+          <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-base font-medium">User Tokens</h2>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground cursor-help"
+                    aria-label="About this page"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="start" className="">
+                  Browse and search issued user tokens, check status and last activity, take actions (e.g., revoke), and export CSV.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="mx-auto max-w-7xl py-6">
+      <div className="mx-auto max-w-7xl py-4">
         {/* KPI Cards */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi icon={<Users className="h-9 w-9" />} title="Total Users" value={kpis.totalUsers} tone="indigo" />
-          <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume" value={kpis.highVolume} tone="emerald" />
-          <Kpi icon={<BadgeCheck className="h-9 w-9" />} title="Total Tokens Issued" value={kpis.totalTokens} tone="sky" />
-          <Kpi icon={<Clock className="h-9 w-9" />} title="Avg Tokens/User" value={kpis.avg} tone="amber" />
-        </div>
+        {!focusMode && (
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Kpi icon={<Users className="h-9 w-9" />} title="Total Users" value={kpis.totalUsers} tone="indigo" />
+            <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume" value={kpis.highVolume} tone="emerald" />
+            <Kpi icon={<BadgeCheck className="h-9 w-9" />} title="Total Tokens Issued" value={kpis.totalTokens} tone="sky" />
+            <Kpi icon={<Clock className="h-9 w-9" />} title="Avg Tokens/User" value={kpis.avg} tone="amber" />
+          </div>
+        )}
 
-        <Card className="p-4 md:p-5">
+        <Card className="relative p-4 md:p-5">
+          {/* Focus toggle – always visible */}
+          <div className={"absolute right-1 top-1 z-20"}>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 not-hover:text-muted-foreground"
+                    aria-pressed={focusMode}
+                    aria-label={focusMode ? "Exit focus mode" : "Enter focus mode"}
+                    onClick={() => setFocusMode(v => !v)}
+                  >
+                    {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    <span className="sr-only">{focusMode ? "Exit focus mode" : "Enter focus mode"}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{focusMode ? "Exit focus" : "Focus (hide headers)"}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
           {/* Filters */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
             <div className="flex-1">

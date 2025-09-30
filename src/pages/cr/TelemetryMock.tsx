@@ -9,7 +9,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { HelpCircle, RefreshCw } from "lucide-react";
+import { HelpCircle, Maximize2, Minimize2, RefreshCw } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import { AppIcons } from "@/lib/icon-map";
@@ -102,6 +102,9 @@ export default function CRTelemetryMock() {
   const [dateStr, setDateStr] = useState<string>(toISODate(new Date())); // default = today
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Focus mode (hide header/KPIs; keep toggle visible)
+  const [focusMode, setFocusMode] = useState<boolean>(false);
 
   // mock data (re-gen on refresh)
   const [{ events, lastByEntity }, setMock] = useState(() => generateTelemetry());
@@ -242,40 +245,66 @@ export default function CRTelemetryMock() {
 
   return (
     <div className="">
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <h1 className="text-2xl font-semibold">Central Registry</h1>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <div className="flex items-center gap-1.5">
-          <h2 className="text-base font-medium">Telemetry</h2>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground cursor-help"
-                  aria-label="About this page"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="start" className="">
-                Track entity fetch activity by date; filter by name/ID/type, drill into an entity’s daily counts, and export CSV.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      {!focusMode && (
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+          <h1 className="text-2xl font-semibold">Central Registry</h1>
+          <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-base font-medium">Telemetry</h2>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground cursor-help"
+                    aria-label="About this page"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="start" className="">
+                  Track entity fetch activity by date; filter by name/ID/type, drill into an entity’s daily counts, and export CSV.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="mx-auto max-w-7xl py-6">
+      <div className="mx-auto max-w-7xl py-4">
         {/* KPI cards */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi title="Total Calls (filtered date)" value={kpis.total.toLocaleString()} icon={<AppIcons.Activity className="h-9 w-9" />} />
-          <Kpi title="AA active" value={kpis.activeAA.toLocaleString()} tone="indigo" icon={<AppIcons.AA className="h-9 w-9" />} />
-          <Kpi title="FIP active" value={kpis.activeFIP.toLocaleString()} tone="sky" icon={<AppIcons.FIP className="h-9 w-9" />} />
-          <Kpi title="FIU active" value={kpis.activeFIU.toLocaleString()} tone="emerald" icon={<AppIcons.FIU className="h-9 w-9" />} />
-        </div>
+        {!focusMode && (
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Kpi title="Total Calls (filtered date)" value={kpis.total.toLocaleString()} icon={<AppIcons.Activity className="h-9 w-9" />} />
+            <Kpi title="AA active" value={kpis.activeAA.toLocaleString()} tone="indigo" icon={<AppIcons.AA className="h-9 w-9" />} />
+            <Kpi title="FIP active" value={kpis.activeFIP.toLocaleString()} tone="sky" icon={<AppIcons.FIP className="h-9 w-9" />} />
+            <Kpi title="FIU active" value={kpis.activeFIU.toLocaleString()} tone="emerald" icon={<AppIcons.FIU className="h-9 w-9" />} />
+          </div>
+        )}
 
         <Card className="relative p-4 md:p-5">
+          {/* Focus toggle – always visible */}
+          <div className={"absolute right-1 top-1 z-20"}>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 not-hover:text-muted-foreground"
+                    aria-pressed={focusMode}
+                    aria-label={focusMode ? "Exit focus mode" : "Enter focus mode"}
+                    onClick={() => setFocusMode(v => !v)}
+                  >
+                    {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    <span className="sr-only">{focusMode ? "Exit focus mode" : "Enter focus mode"}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{focusMode ? "Exit focus" : "Focus (hide headers)"}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
           {/* Filters */}
           {!drillEntity && (
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">

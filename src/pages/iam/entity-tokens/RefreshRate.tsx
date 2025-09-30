@@ -12,6 +12,8 @@ import {
   BarChart3,
   ArrowLeft,
   HelpCircle,
+  Minimize2,
+  Maximize2,
 } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
@@ -121,6 +123,9 @@ export default function RefreshRate() {
 
   // detail view toggle
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+
+  // Focus mode (hide header/KPIs; keep toggle visible)
+  const [focusMode, setFocusMode] = useState<boolean>(false);
 
   // Aggregate for the main table by selected date
   type AggregatedRow = {
@@ -249,35 +254,37 @@ export default function RefreshRate() {
 
   return (
     <div className="">
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <h1 className="text-2xl font-semibold">IAM</h1>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <h2 className="text-base font-medium">Entity Tokens</h2>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <div className="flex items-center gap-1.5">
-          <h3 className="text-base text-muted-foreground">Refresh Rate</h3>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground cursor-help"
-                  aria-label="About this page"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="start" className="">
-                Pick a date, see per-entity token activity, drill into daily counts, filter by name/ID/type, and export CSV.
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      {!focusMode && (
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+          <h1 className="text-2xl font-semibold">IAM</h1>
+          <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+          <h2 className="text-base font-medium">Entity Tokens</h2>
+          <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-base text-muted-foreground">Refresh Rate</h3>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground cursor-help"
+                    aria-label="About this page"
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" align="start" className="">
+                  Pick a date, see per-entity token activity, drill into daily counts, filter by name/ID/type, and export CSV.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="mx-auto max-w-7xl py-6">
+      <div className="mx-auto max-w-7xl py-4">
         {/* KPIs */}
-        {!selectedEntity && (
+        {!selectedEntity && !focusMode && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume (>5)" value={kpis.highVolume} tone="emerald" />
             <Kpi icon={<Clock className="h-9 w-9" />} title="Inactive (24h+)" value={kpis.inactive24h} tone="amber" />
@@ -286,7 +293,29 @@ export default function RefreshRate() {
           </div>
         )}
 
-        <Card className="p-4 md:p-5">
+        <Card className="relative p-4 md:p-5">
+          {/* Focus toggle – always visible */}
+          <div className={"absolute right-1 top-1 z-20"}>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 not-hover:text-muted-foreground"
+                    aria-pressed={focusMode}
+                    aria-label={focusMode ? "Exit focus mode" : "Enter focus mode"}
+                    onClick={() => setFocusMode(v => !v)}
+                  >
+                    {focusMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    <span className="sr-only">{focusMode ? "Exit focus mode" : "Enter focus mode"}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{focusMode ? "Exit focus" : "Focus (hide headers)"}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
           {/* Filters / Header row */}
           {!selectedEntity ? (
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
