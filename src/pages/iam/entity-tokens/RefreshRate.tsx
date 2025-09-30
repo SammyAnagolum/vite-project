@@ -11,11 +11,13 @@ import {
   Clock,
   BarChart3,
   ArrowLeft,
+  HelpCircle,
 } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /** ---------------- Types ---------------- */
 type DetailRow = {
@@ -252,11 +254,25 @@ export default function RefreshRate() {
         <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
         <h2 className="text-base font-medium">Entity Tokens</h2>
         <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <h3 className="text-base text-muted-foreground">Refresh Rate</h3>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <p className="text-sm text-muted-foreground">
-          Pick a date, see per-entity token activity, drill into daily counts, filter by name/ID/type, and export CSV.
-        </p>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-base text-muted-foreground">Refresh Rate</h3>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground cursor-help"
+                  aria-label="About this page"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start" className="">
+                Pick a date, see per-entity token activity, drill into daily counts, filter by name/ID/type, and export CSV.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="mx-auto max-w-7xl py-6">

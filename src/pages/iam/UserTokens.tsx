@@ -10,10 +10,12 @@ import {
   Clock,
   Search,
   RefreshCcw,
+  HelpCircle,
 } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ---------------- Types ----------------
 type UserToken = {
@@ -84,11 +86,25 @@ export default function UserTokens() {
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <h1 className="text-2xl font-semibold">IAM</h1>
         <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <h2 className="text-base font-medium">User Tokens</h2>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <p className="text-sm text-muted-foreground">
-          Browse and search issued user tokens, check status and last activity, take actions (e.g., revoke), and export CSV.
-        </p>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-base font-medium">User Tokens</h2>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground cursor-help"
+                  aria-label="About this page"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start" className="">
+                Browse and search issued user tokens, check status and last activity, take actions (e.g., revoke), and export CSV.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="mx-auto max-w-7xl py-6">

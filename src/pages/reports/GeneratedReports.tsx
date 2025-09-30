@@ -9,11 +9,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Download, RefreshCcw, Search, Trash2 } from "lucide-react";
+import { Download, HelpCircle, RefreshCcw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useReportsApi } from "@/services/reportsApi"; // fetchGeneratedReports, downloadReport, deleteReport
 import DataTable from "@/components/common/DataTable";
 import type { DataTableColumn } from "@/components/common/data-table/types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type GeneratedRow = {
   requestId: string;
@@ -173,11 +174,25 @@ export default function GeneratedReports() {
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <h1 className="text-2xl font-semibold">Reports</h1>
         <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <h2 className="text-base font-medium">Generated Reports</h2>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <p className="text-sm text-muted-foreground">
-          Track report requests and status, download completed files, delete rows, filter by status, and refresh.
-        </p>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-base font-medium">Generated Reports</h2>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground cursor-help"
+                  aria-label="About this page"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start" className="">
+                Track report requests and status, download completed files, delete rows, filter by status, and refresh.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="mx-auto max-w-7xl py-6">

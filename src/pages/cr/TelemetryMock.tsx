@@ -9,7 +9,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { RefreshCw } from "lucide-react";
+import { HelpCircle, RefreshCw } from "lucide-react";
 import Kpi from "@/components/common/Kpi";
 import EmptyState from "@/components/common/EmptyState";
 import { AppIcons } from "@/lib/icon-map";
@@ -17,6 +17,7 @@ import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
 import TypeBadge from "@/components/common/TypeBadge";
 import type { Entity, EntityType } from "@/lib/types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /** -------- Types -------- */
 type TelemetryEvent = {
@@ -244,11 +245,25 @@ export default function CRTelemetryMock() {
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <h1 className="text-2xl font-semibold">Central Registry</h1>
         <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <h2 className="text-base font-medium">Telemetry</h2>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <p className="text-sm text-muted-foreground">
-          Track entity fetch activity by date; filter by name/ID/type, drill into an entity’s daily counts, and export CSV.
-        </p>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-base font-medium">Telemetry</h2>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground cursor-help"
+                  aria-label="About this page"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start" className="">
+                Track entity fetch activity by date; filter by name/ID/type, drill into an entity’s daily counts, and export CSV.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="mx-auto max-w-7xl py-6">

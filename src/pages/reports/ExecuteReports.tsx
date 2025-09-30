@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Play, RefreshCcw, Search, CalendarDays } from "lucide-react";
+import { Play, RefreshCcw, Search, CalendarDays, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 // wire your real API here
 import { useReportsApi } from "@/services/reportsApi"; // fetchDashboards, generateReport
@@ -174,11 +174,25 @@ export default function ExecuteReports() {
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <h1 className="text-2xl font-semibold">Reports</h1>
         <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <h2 className="text-base font-medium">Execute Reports</h2>
-        <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
-        <p className="text-sm text-muted-foreground">
-          Search dashboards, choose a time range (quick or custom), and submit report generation.
-        </p>
+        <div className="flex items-center gap-1.5">
+          <h2 className="text-base font-medium">Execute Reports</h2>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground cursor-help"
+                  aria-label="About this page"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="start" className="">
+                Search dashboards, choose a time range (quick or custom), and submit report generation.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       <div className="mx-auto max-w-7xl py-6">
