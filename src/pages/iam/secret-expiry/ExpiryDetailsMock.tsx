@@ -52,7 +52,7 @@ const MOCK: Row[] = [
   { name: "AA-ONEMONEY", id: "ONEMONEY-AA-001", type: "AA", expiryDate: "2025-09-15 13:10:10" },
 ];
 
-export default function SecretExpiryDetails() {
+export default function SecretExpiryDetailsMock() {
   // filters
   const [qName, setQName] = useState("");
   const [qId, setQId] = useState("");
