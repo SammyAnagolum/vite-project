@@ -1,5 +1,5 @@
 import { type ComponentType } from "react";
-import { Database, Shield, FileText, KeySquare, Users, AlertTriangle } from "lucide-react";
+import { Database, Shield, FileText, KeySquare, AlertTriangle } from "lucide-react";
 
 export type NavNode = {
     id: string;
@@ -38,7 +38,6 @@ export const NAV: NavNode[] = [
                     { id: "iam-entity-tokens-refresh-rate", title: "Refresh Rate", path: "/iam/entity-tokens/refresh-rate" },
                 ],
             },
-            { id: "iam-user-tokens", title: "User Tokens", path: "/iam/user-tokens", icon: Users },
         ],
     },
     {
