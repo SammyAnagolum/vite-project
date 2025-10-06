@@ -115,7 +115,7 @@ const MOCK: EntityRow[] = [
 ];
 
 /** ---------------- Page ---------------- */
-export default function RefreshRate() {
+export default function RefreshRateMock() {
   // filters
   const [selectedDate, setSelectedDate] = useState<string>(() => todayISO());
   const [qName, setQName] = useState("");
