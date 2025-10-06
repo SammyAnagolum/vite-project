@@ -85,6 +85,22 @@ export default function GeneratedReports() {
     });
   }, [rows, q, status]);
 
+  // Export preamble (shown at top of Excel file)
+  const exportInfo = useMemo(() => {
+    const out: Array<{ label: string; value: string }> = [];
+    if (q.trim()) out.push({ label: "Search", value: q.trim() });
+    out.push({
+      label: "Status",
+      value: status === "__ALL__" ? "All" : status,
+    });
+    out.push({ label: "Rows (filtered)", value: String(filtered.length) });
+    out.push({
+      label: "Exported At (IST)", value:
+        new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium" }).format(new Date())
+    });
+    return out;
+  }, [q, status, filtered.length]);
+
   // columns (define BEFORE we compute sorted)
   const cols: DataTableColumn<GeneratedRow>[] = useMemo(() => [
     { key: "name", header: "Report Name", cell: r => <span className="font-medium">{r.name}</span>, sortBy: "name" },
@@ -188,7 +204,7 @@ export default function GeneratedReports() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" align="start" className="">
-                Track report requests and status, download completed files, delete rows, filter by status, and refresh.
+                Track report requests and status, download completed files, delete rows, filter by status, export XLSX/CSV, and refresh.
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -243,6 +259,8 @@ export default function GeneratedReports() {
             getRowKey={(r) => r.requestId}
             initialSort={{ key: "name", direction: "asc" }}
             exportCsvFilename="Generated_Reports.csv" // ← optional
+            exportExcelFilename="Generated_Reports.xlsx"
+            exportInfo={exportInfo}
           />
         </Card>
       </div>
