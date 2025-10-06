@@ -1,220 +1,213 @@
-/* Fake Reports API for Execute & Generated Reports pages
- * Replace with real HTTP calls later. Shapes match what the pages expect.
- */
+// src/services/reportsApi.ts
 import { useMemo } from "react";
+import { api } from "@/lib/http";
 
-/** ---------- Types ---------- */
+/** ---------- Types the pages use ---------- */
 export type GenerateReportBody = {
     dashboard_id: string;
-    start_time: string; // ISO
-    end_time: string; // ISO
+    start_time: string; // The page sends ISO; we convert to API format in this module
+    end_time: string; // The page sends ISO; we convert to API format in this module
     export_format: "PDF" | "CSV";
+    user_id?: string; // optional (old client sometimes sent it)
 };
 
-type DashboardRow = {
+export type DashboardRow = {
+    /** Friendly fields the Execute Reports page expects */
     id: string;
-    dashboard_id?: string; // tolerance if your real API uses this key
-    name: string;
-    createdBy: string;
-    modifiedAt: string; // display string
+    dashboard_id: string;
+    name: string; // mapped from title
+    createdBy: string; // mapped from created_by
+    modifiedAt: string; // formatted from updated_at (fallback created_at)
 };
 
-type GeneratedReq = {
+export type DashboardsResponse = {
+    dashboards: DashboardRow[];
+};
+
+export type GeneratedReq = {
     requestId: string;
-    name: string;
-    status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
-    appliedFilter: string;
-    downloadedCount: number;
+    name: string; // derived from dashboard title if backend doesn't provide
+    status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | string;
+    appliedFilter: string; // "YYYY-MM-DD HH:mm:ss - YYYY-MM-DD HH:mm:ss"
+    downloadedCount: number; // from meta_data if available
 };
 
-/** ---------- Mock DB (module-scoped to persist across renders) ---------- */
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const now = () => new Date();
+export type GeneratedReportsResponse = {
+    requests: GeneratedReq[];
+};
 
-const mockDashboards: DashboardRow[] = [
-    {
-        id: "db-1001",
-        dashboard_id: "db-1001",
-        name: "KPI - Token Health",
-        createdBy: "ops.bot",
-        modifiedAt: "2025-07-10 09:12:44",
-    },
-    {
-        id: "db-1002",
-        dashboard_id: "db-1002",
-        name: "IAM - Entity Tokens",
-        createdBy: "harish",
-        modifiedAt: "2025-07-11 17:05:12",
-    },
-    {
-        id: "db-1003",
-        dashboard_id: "db-1003",
-        name: "IAM - User Tokens",
-        createdBy: "sowmya",
-        modifiedAt: "2025-07-09 14:37:58",
-    },
-    {
-        id: "db-1004",
-        dashboard_id: "db-1004",
-        name: "Secret Expiry",
-        createdBy: "devops",
-        modifiedAt: "2025-07-08 22:01:06",
-    },
-    {
-        id: "db-1005",
-        dashboard_id: "db-1005",
-        name: "System Audit",
-        createdBy: "auditor",
-        modifiedAt: "2025-06-30 11:19:21",
-    },
-    {
-        id: "db-1006",
-        dashboard_id: "db-1006",
-        name: "Traffic Summary",
-        createdBy: "ops.bot",
-        modifiedAt: "2025-07-12 08:02:09",
-    },
-    { id: "db-1007", dashboard_id: "db-1007", name: "Error Rates", createdBy: "qa.team", modifiedAt: "2025-07-05 19:45:02" },
-    {
-        id: "db-1008",
-        dashboard_id: "db-1008",
-        name: "Consent Requests",
-        createdBy: "product",
-        modifiedAt: "2025-07-03 10:28:34",
-    },
-];
+/** ---------- Utils ---------- */
 
-let generatedRequests: GeneratedReq[] = [
-    {
-        requestId: "req-9001",
-        name: "Secret Expiry - Weekly",
-        status: "COMPLETED",
-        appliedFilter: "2025-07-05 00:00:00 - 2025-07-12 00:00:00",
-        downloadedCount: 3,
-    },
-    {
-        requestId: "req-9002",
-        name: "IAM Tokens - Yesterday",
-        status: "PROCESSING",
-        appliedFilter: "2025-07-11 00:00:00 - 2025-07-11 23:59:59",
-        downloadedCount: 1,
-    },
-    {
-        requestId: "req-9003",
-        name: "Audit Log - Q2",
-        status: "FAILED",
-        appliedFilter: "2025-04-01 00:00:00 - 2025-06-30 23:59:59",
-        downloadedCount: 0,
-    },
-    {
-        requestId: "req-9004",
-        name: "Traffic Summary - 7d",
-        status: "COMPLETED",
-        appliedFilter: "2025-07-05 08:00:00 - 2025-07-12 08:00:00",
-        downloadedCount: 5,
-    },
-];
-
-/** Small ID factory */
-let reqCounter = 10000;
-const nextReqId = () => `req-${reqCounter++}`;
-
-/** Format helper: "YYYY-MM-DD HH:mm:ss" */
-function fmt(d: Date) {
+/** API wants: "YYYY-MM-DD HH:mm:ss.000000" (UTC); page gives ISO. */
+function isoToApiTimestamp(iso: string): string {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso; // fall back (server may still accept)
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
-        d.getMinutes()
-    )}:${pad(d.getSeconds())}`;
+    const yyyy = d.getUTCFullYear();
+    const MM = pad(d.getUTCMonth() + 1);
+    const dd = pad(d.getUTCDate());
+    const hh = pad(d.getUTCHours());
+    const mm = pad(d.getUTCMinutes());
+    const ss = pad(d.getUTCSeconds());
+    return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}.000000`;
 }
 
-/** ---------- Public hook API (same shape used by pages) ---------- */
+/** Display helper: "YYYY-MM-DD HH:mm:ss" (local). */
+function toDisplayLocal(input: unknown): string {
+    if (!input) return "—";
+    const d = new Date(String(input));
+    if (Number.isNaN(d.getTime())) return String(input);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    const MM = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+    const hh = pad(d.getHours());
+    const mm = pad(d.getMinutes());
+    const ss = pad(d.getSeconds());
+    return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+}
+
+/** Safe filename for downloads. */
+function sanitizeFilename(name?: string): string {
+    if (!name) return "Report";
+    let s = name.replace(/[^a-zA-Z0-9-_]/g, "-");
+    s = s.replace(/-+/g, "-").replace(/^-|-$/g, "");
+    return s || "Report";
+}
+
+/** ---------- Public API (stable refs via useMemo) ---------- */
 export function useReportsApi() {
-    const fetchDashboards = async (): Promise<{ dashboards: DashboardRow[] }> => {
-        await delay(400);
-        // clone to simulate network payload
-        return { dashboards: JSON.parse(JSON.stringify(mockDashboards)) };
+    const fetchDashboards = async (): Promise<DashboardsResponse> => {
+        // Legacy client used: POST /api/reports/dashboards {}
+        // Our axios base already prefixes /api, so just:
+        const res = await api.post(`/reports/dashboards`, {});
+        const raw = Array.isArray(res.data?.dashboards)
+            ? res.data.dashboards
+            : Array.isArray(res.data) // tolerate plain array
+            ? res.data
+            : [];
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dashboards: DashboardRow[] = raw.map((d: any) => {
+            const id = String(d.dashboard_id ?? d.dashboardId ?? d.id ?? "");
+            return {
+                id,
+                dashboard_id: id,
+                name: String(d.title ?? d.name ?? "Untitled"),
+                createdBy: String(d.created_by ?? d.createdBy ?? d.owner ?? "—"),
+                modifiedAt: toDisplayLocal(d.updated_at ?? d.modifiedAt ?? d.updatedAt ?? d.created_at ?? ""),
+            };
+        });
+
+        return { dashboards };
     };
 
-    const fetchGeneratedReports = async (): Promise<{ requests: GeneratedReq[] }> => {
-        await delay(400);
-        // Optional: bump some downloaded counts randomly to feel “alive”
-        generatedRequests = generatedRequests.map((r) =>
-            r.status === "COMPLETED" && Math.random() < 0.15 ? { ...r, downloadedCount: r.downloadedCount + 1 } : r
-        );
-        return { requests: JSON.parse(JSON.stringify(generatedRequests)) };
-    };
-
-    const generateReport = async (body: GenerateReportBody): Promise<void> => {
-        // Validate minimal fields (fake)
-        if (!body.dashboard_id || !body.start_time || !body.end_time) {
-            throw new Error("Missing fields for report generation");
-        }
-
-        const dash = mockDashboards.find((d) => d.id === body.dashboard_id || d.dashboard_id === body.dashboard_id);
-        const name = `${dash?.name ?? "Report"} - ${body.export_format}`;
-
-        // Create a new pending request
-        const newReq: GeneratedReq = {
-            requestId: nextReqId(),
-            name,
-            status: "PENDING",
-            appliedFilter: `${fmt(new Date(body.start_time))} - ${fmt(new Date(body.end_time))}`,
-            downloadedCount: 0,
+    const generateReport = async (body: GenerateReportBody) => {
+        // Old endpoint: POST /api/reports/dashboards/submit/request
+        // Convert times to server format if page sent ISO
+        const payload = {
+            dashboard_id: body.dashboard_id,
+            start_time: body.start_time.includes("T") ? isoToApiTimestamp(body.start_time) : body.start_time,
+            end_time: body.end_time.includes("T") ? isoToApiTimestamp(body.end_time) : body.end_time,
+            export_format: body.export_format,
+            ...(body.user_id ? { user_id: body.user_id } : {}),
         };
-        generatedRequests = [newReq, ...generatedRequests];
 
-        // Simulate backend processing → PROCESSING → COMPLETED
-        // (We don't await these; pages will see updated state on refresh.)
-        setTimeout(() => {
-            generatedRequests = generatedRequests.map((r) =>
-                r.requestId === newReq.requestId ? { ...r, status: "PROCESSING" } : r
-            );
-        }, 800);
+        const res = await api.post(`/reports/dashboards/submit/request`, payload, {
+            headers: { "Content-Type": "application/json" },
+        });
+        return res.data as {
+            request_id: string;
+            dashboard_id: string;
+            status: string;
+            created_at: string;
+        };
+    };
 
-        setTimeout(() => {
-            const didFail = Math.random() < 0.08; // small chance to fail
-            generatedRequests = generatedRequests.map((r) =>
-                r.requestId === newReq.requestId ? { ...r, status: didFail ? "FAILED" : "COMPLETED" } : r
-            );
-        }, 1800);
+    const fetchGeneratedReports = async (): Promise<GeneratedReportsResponse> => {
+        // Old endpoint: POST /api/reports/generated-reports { filters: {} }
+        const res = await api.post(
+            `/reports/generated-reports`,
+            { filters: {} },
+            { headers: { "Content-Type": "application/json" } }
+        );
 
-        // Simulate POST latency
-        await delay(300);
+        const raw = Array.isArray(res.data?.requests) ? res.data.requests : Array.isArray(res.data) ? res.data : [];
+
+        const requests: GeneratedReq[] = raw
+            .filter((r: any) => r?.status !== "RETIRED") // eslint-disable-line @typescript-eslint/no-explicit-any
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((r: any) => {
+                // Prefer dashboard title if present on server; otherwise craft a label
+                const title =
+                    r.dashboard_title ??
+                    r.dashboardName ??
+                    (r.dashboard_id
+                        ? `Dashboard ${String(r.dashboard_id).slice(0, 8)}`
+                        : `Report ${String(r.request_id).slice(0, 8)}`);
+
+                // Applied filter as a readable range if start/end present
+                let appliedFilter = "{}";
+                if (r.start_time && r.end_time) {
+                    const start = toDisplayLocal(r.start_time);
+                    const end = toDisplayLocal(r.end_time);
+                    appliedFilter = `${start} - ${end}`;
+                }
+
+                // Download count from meta_data if available
+                const downloadedCount = Number(r.meta_data?.downloadCount ?? 0);
+
+                return {
+                    requestId: String(r.request_id ?? r.id ?? ""),
+                    name: String(title),
+                    status: String(r.status ?? "PENDING"),
+                    appliedFilter,
+                    downloadedCount,
+                };
+            });
+
+        return { requests };
     };
 
     const downloadReport = async (requestId: string, reportName?: string): Promise<void> => {
-        await delay(250);
-        const row = generatedRequests.find((r) => r.requestId === requestId);
-        if (!row) throw new Error("Report not found");
+        // Old endpoint: GET /api/reports/download/{request_id} (PDF)
+        const res = await api.get(`/reports/download/${encodeURIComponent(requestId)}`, {
+            responseType: "blob" as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            headers: { "Content-Type": "application/json" },
+        });
 
-        // Simulate a PDF blob and start a download
-        const content = `Fake PDF report\n\nName: ${reportName ?? row.name}\nRequest ID: ${requestId}\nStatus: ${
-            row.status
-        }\nFilter: ${row.appliedFilter}\nGenerated at: ${fmt(now())}\n`;
-        const blob = new Blob([content], { type: "application/pdf" });
+        const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: "application/pdf" });
+
+        // Filename: <sanitizedName>-YYYY-MM-DD_HH-mm-ss.pdf
+        const now = new Date();
+        const pad = (n: number) => String(n).padStart(2, "0");
+        const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(
+            now.getMinutes()
+        )}-${pad(now.getSeconds())}`;
+        const base = sanitizeFilename(reportName) || "Report";
+        const filename = `${base}-${stamp}.pdf`;
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `${(reportName ?? row.name).replace(/\s+/g, "_")}.pdf`;
+        a.download = filename;
+        a.style.display = "none";
         document.body.appendChild(a);
         a.click();
         a.remove();
-        URL.revokeObjectURL(url);
-
-        // Update downloaded count
-        generatedRequests = generatedRequests.map((r) =>
-            r.requestId === requestId ? { ...r, downloadedCount: r.downloadedCount + 1 } : r
-        );
+        setTimeout(() => URL.revokeObjectURL(url), 100);
     };
 
-    const deleteReport = async (requestId: string): Promise<void> => {
-        await delay(250);
-        const exists = generatedRequests.some((r) => r.requestId === requestId);
-        if (!exists) throw new Error("Report not found");
-        generatedRequests = generatedRequests.filter((r) => r.requestId !== requestId);
+    const deleteReport = async (requestId: string) => {
+        // Old endpoint: DELETE /api/reports/delete/{request_id}
+        const res = await api.delete(`/reports/delete/${encodeURIComponent(requestId)}`, {
+            headers: { "Content-Type": "application/json" },
+        });
+        return res.data as { request_id: string; status: string; message: string };
     };
 
-    // Return stable references (useMemo not strictly necessary but tidy)
+    // Stable references for consumers
     return useMemo(
         () => ({
             fetchDashboards,
