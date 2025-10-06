@@ -14,6 +14,7 @@ import {
     LoaderCircle,
     CalendarClock,
     TriangleAlert,
+    CalendarDays
 } from "lucide-react";
 
 export const AppIcons = {
@@ -30,6 +31,7 @@ export const AppIcons = {
     ShieldAlert,
     CalendarClock,
     TriangleAlert,
+    CalendarDays,
 
     // statuses
     Pending: Clock,
