@@ -22,10 +22,13 @@ import {
   ChevronRight,
   ChevronsRight,
   Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import PageNumbers from "@/components/common/PageNumbers";
 import type { DataTableColumn, SortState } from "./data-table/types";
 import { sortRows } from "./data-table/sort";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 export default function DataTable<T>({
   data,
@@ -61,6 +64,9 @@ export default function DataTable<T>({
 
   // Export
   exportCsvFilename,
+  exportExcelFilename, // <-- NEW
+  exportInfo,
+  exportExcludeKeys = [],
 
   // Inital Default sort
   initialSort
@@ -100,6 +106,15 @@ export default function DataTable<T>({
   /** If set, shows a Download button and exports CSV of all processed rows */
   exportCsvFilename?: string;
 
+  /** If set, shows a Download button and exports **Excel (.xlsx)** of all processed rows */
+  exportExcelFilename?: string;
+
+  /** Optional key/value pairs (filters or context) to render above the header in Excel */
+  exportInfo?: Array<{ label: string; value: string }>;
+
+  /** Additional column keys to exclude from CSV/XLSX exports (default already excludes "actions") */
+  exportExcludeKeys?: string[];
+
   /** Initial sort for uncontrolled mode */
   initialSort?: SortState;
 }) {
@@ -119,7 +134,7 @@ export default function DataTable<T>({
         prev.key === initialSort.key && prev.direction === initialSort.direction ? prev : initialSort
       );
     }
-  }, [isControlled, initialSort?.key, initialSort?.direction]);
+  }, [isControlled, initialSort?.key, initialSort?.direction]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const effSort = sort ?? internalSort;
 
@@ -167,21 +182,57 @@ export default function DataTable<T>({
   const rangeStart = totalRows === 0 ? 0 : startOffset + 1;
   const rangeEnd = Math.min(startOffset + pageSize, totalRows);
 
+  // Helpers: get plain text out of any cell value (including React elements)
+  function toPlainText(v: unknown): string {
+    if (v == null) return "";
+    if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+    if (Array.isArray(v)) return v.map(toPlainText).join("");
+    // React element?
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (React.isValidElement(v as any)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const walk = (node: any): string => {
+        if (node == null) return "";
+        if (typeof node === "string" || typeof node === "number" || typeof node === "boolean") return String(node);
+        if (Array.isArray(node)) return node.map(walk).join("");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (React.isValidElement(node)) return walk((node as any).props?.children);
+        return "";
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return walk((v as any).props?.children);
+    }
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+
+  // Compute exportable columns (exclude "actions" by default + any caller-specified keys)
+  const exportableColumns = React.useMemo(
+    () => {
+      const excluded = new Set<string>(["actions", ...exportExcludeKeys.map(String)]);
+      return columns.filter(c => !excluded.has(String(c.key)));
+    },
+    [columns, exportExcludeKeys]
+  );
+
   // --- export CSV (all processed rows, not just current page) ---
   function exportCsv() {
     if (!exportCsvFilename) return;
-    const headers = columns.map((c) =>
+    const headers = exportableColumns.map((c) =>
       typeof c.header === "string" ? c.header : String(c.key)
     );
 
     const matrix = processed.map((row, i) =>
-      columns.map((c) => {
-        // exportValue → sortBy (fn) → sortBy (key) → direct key → fallback empty
-        if (c.exportValue) return c.exportValue(row, i);
-        if (typeof c.sortBy === "function") return c.sortBy(row);
-        if (typeof c.sortBy === "string") return (row as any)[c.sortBy]; // eslint-disable-line @typescript-eslint/no-explicit-any
-        if (typeof (row as any)[c.key] !== "undefined") return (row as any)[c.key]; // eslint-disable-line @typescript-eslint/no-explicit-any
-        return "";
+      exportableColumns.map((c) => {
+        let val: unknown = "";
+        if (c.exportValue) val = c.exportValue(row, i);
+        else if (typeof c.sortBy === "function") val = c.sortBy(row);
+        else if (typeof c.sortBy === "string") val = (row as any)[c.sortBy]; // eslint-disable-line @typescript-eslint/no-explicit-any
+        else if (typeof (row as any)[c.key] !== "undefined") val = (row as any)[c.key]; // eslint-disable-line @typescript-eslint/no-explicit-any
+        return toPlainText(val);
       })
     );
 
@@ -196,6 +247,64 @@ export default function DataTable<T>({
     a.download = exportCsvFilename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // --- export Excel (all processed rows; only exportable columns; optional exportInfo preamble) ---
+  async function exportExcel() {
+    if (!exportExcelFilename) return;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Data");
+
+    // Optional preamble (filters/context)
+    if (exportInfo && exportInfo.length) {
+      const hdr = ws.addRow(["FILTERS", ""]);
+      hdr.getCell(1).font = { bold: true };
+      exportInfo.forEach(({ label, value }) => {
+        const r = ws.addRow([label ?? "", value ?? ""]);
+        r.getCell(1).font = { bold: true };
+        r.eachCell((cell) => (cell.alignment = { horizontal: "left", vertical: "middle" }));
+      });
+      ws.addRow([]); // spacer
+    }
+
+    // Header
+    const header = exportableColumns.map((c) =>
+      typeof c.header === "string" ? c.header : String(c.key)
+    );
+    const headerRowNum = ws.rowCount + 1;
+    const headerRow = ws.addRow(header);
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.alignment = { vertical: "middle", horizontal: "left" };
+    });
+
+    // Data rows
+    processed.forEach((row, i) => {
+      const cells = exportableColumns.map((c) => {
+        let val: unknown = "";
+        if (c.exportValue) val = c.exportValue(row, i);
+        else if (typeof c.sortBy === "function") val = c.sortBy(row);
+        else if (typeof c.sortBy === "string") val = (row as any)[c.sortBy]; // eslint-disable-line @typescript-eslint/no-explicit-any
+        else if (typeof (row as any)[c.key] !== "undefined") val = (row as any)[c.key]; // eslint-disable-line @typescript-eslint/no-explicit-any
+        return toPlainText(val);
+      });
+      ws.addRow(cells);
+    });
+
+    // Align & widths
+    ws.eachRow((row) =>
+      row.eachCell((cell) => (cell.alignment = { horizontal: "left", vertical: "middle", wrapText: false }))
+    );
+    exportableColumns.forEach((c, i) => {
+      ws.getColumn(i + 1).width = Math.max(14, String(typeof c.header === "string" ? c.header : c.key).length + 6);
+    });
+
+    // Freeze top (including preamble) and add AutoFilter on header row
+    ws.views = [{ state: "frozen", ySplit: headerRowNum }];
+    ws.autoFilter = { from: { row: headerRowNum, column: 1 }, to: { row: headerRowNum, column: exportableColumns.length } };
+
+    const buf = await wb.xlsx.writeBuffer();
+    saveAs(new Blob([buf]), exportExcelFilename);
   }
 
   const colCount = columns.length + (showIndex ? 1 : 0);
@@ -307,11 +416,17 @@ export default function DataTable<T>({
       </div>
 
       {/* Footer: Export + Pagination (only when enabled) */}
-      {(exportCsvFilename || paginate) && (
+      {(exportCsvFilename || exportExcelFilename || paginate) && (
         <div className="py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
+            {exportExcelFilename && (
+              <Button onClick={exportExcel} variant="outline" disabled={data.length === 0}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Download Excel
+              </Button>
+            )}
             {exportCsvFilename && (
-              <Button onClick={exportCsv}>
+              <Button onClick={exportCsv} disabled={data.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
                 Download CSV
               </Button>
