@@ -5,12 +5,13 @@ import NotFound from "@/pages/NotFound";
 import UserTokensPage from "./pages/iam/UserTokensPage";
 import ExpiryDetailsPage from "./pages/iam/secret-expiry/ExpiryDetailsPage";
 import TelemetryPage from "./pages/cr/TelemetryPage";
-import EntitiesPage from "./pages/cr/EnititiesPage";
+import EntitiesPage from "./pages/cr/EntitiesPage";
 import RefreshRatePage from "./pages/iam/entity-tokens/RefreshRatePage";
 import GeneratedReportsPage from "./pages/reports/GeneratedReportsPage";
 import ExecuteReportsPage from "./pages/reports/ExecuteReportsPage";
 import PreferencesPage from "./pages/settings/PreferencesPage";
 import ProfilePage from "./pages/profile/ProfilePage";
+import ChangelogPage from "./pages/changelog/ChangelogPage";
 
 function Fallback() {
   return (
@@ -51,6 +52,9 @@ export default function App() {
 
           {/* Profile */}
           <Route path="/profile" element={<ProfilePage />} />
+
+          {/* Changelog */}
+          <Route path="changelog" element={<ChangelogPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Route>
