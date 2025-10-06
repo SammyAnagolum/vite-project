@@ -1,4 +1,3 @@
-import UserTokens from "./UserTokens";
 export default function UserTokensPage() {
-  return <UserTokens />
+  return <div>Coming Soon...</div>
 }

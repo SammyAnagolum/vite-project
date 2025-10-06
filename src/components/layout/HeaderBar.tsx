@@ -2,7 +2,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -12,12 +11,13 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, HelpCircle, LogOut, Settings, User, Search as SearchIcon } from "lucide-react";
+import { Bell, HelpCircle, LogOut, Settings, User } from "lucide-react";
 import ModeToggle from "../common/ModeToggle";
 
 // NEW: bring in our overlays
 import NotificationsSheet, { type NotificationItem } from "./NotificationsSheet";
 import HelpDialog from "./HelpDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ACRONYMS: Record<string, string> = { cr: "CR", iam: "IAM" };
 
@@ -80,11 +80,7 @@ export default function HeaderBar() {
       {/* Left: breadcrumbs */}
       <Breadcrumbs />
 
-      {/* Center: quick search */}
-      <div className="relative ml-auto hidden w-72 items-center md:flex">
-        <SearchIcon className="pointer-events-none absolute left-2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search…" className="pl-8" />
-      </div>
+      <div className="ml-auto" />
 
       <ModeToggle />
 
@@ -94,27 +90,39 @@ export default function HeaderBar() {
       </span>
 
       {/* Actions */}
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label="Notifications"
-        onClick={() => setNotifOpen(true)}
-        className="relative"
-      >
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <span className="absolute right-1 top-1 inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-        )}
-      </Button>
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Notifications"
+              onClick={() => setNotifOpen(true)}
+              className="relative"
+            >
+              <Bell className="h-5 w-5" />
+              {unreadCount > 0 && (
+                <span className="absolute right-1 top-1 inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Notifications (coming soon)</TooltipContent>
+        </Tooltip>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label="Help"
-        onClick={() => setHelpOpen(true)}
-      >
-        <HelpCircle className="h-5 w-5" />
-      </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Help"
+              onClick={() => setHelpOpen(true)}
+            >
+              <HelpCircle className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Help & Docs (coming soon)</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {/* User menu */}
       <DropdownMenu>
@@ -143,13 +151,13 @@ export default function HeaderBar() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => {/* hook sign-out here */ }} className="text-destructive">
+          <DropdownMenuItem onClick={() => { /* hook sign-out here */ }} className="text-destructive">
             <LogOut className="mr-2 h-4 w-4" /> Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* NEW: Overlays */}
+      {/* Overlays */}
       <NotificationsSheet
         open={notifOpen}
         onOpenChange={setNotifOpen}
@@ -167,39 +175,19 @@ function seedNotifications(): NotificationItem[] {
   return [
     {
       id: "n1",
-      title: "Report ready",
-      description: "Your IAM Entity Tokens report has finished generating.",
-      time: iso(8 * 60 * 60 * 1000),
-      type: "success",
+      title: "Coming soon: Smart alerts",
+      description: "Get notified about expiring secrets, report completions, and anomalies.",
+      time: iso(6 * 60 * 60 * 1000),
+      type: "system",
       read: false,
-      actionLabel: "Open",
-      actionHref: "/reports/generated",
+      actionLabel: "Learn more",
+      actionHref: "/changelog",
     },
     {
       id: "n2",
-      title: "Expiring secrets",
-      description: "3 entities have secrets expiring within 7 days.",
-      time: iso(22 * 60 * 60 * 1000),
-      type: "warning",
-      read: false,
-      actionLabel: "Review",
-      actionHref: "/iam/secret-expiry/details",
-    },
-    {
-      id: "n3",
-      title: "New CR telemetry activity",
-      description: "Activity spike detected for FIU-SIMULATOR.",
-      time: iso(3 * 24 * 60 * 60 * 1000),
-      type: "info",
-      read: true,
-      actionLabel: "View",
-      actionHref: "/cr/telemetry",
-    },
-    {
-      id: "n4",
       title: "Welcome to the new console",
       description: "We’ve refreshed the UI. Let us know what you think!",
-      time: iso(5 * 24 * 60 * 60 * 1000),
+      time: iso(3 * 24 * 60 * 60 * 1000),
       type: "system",
       read: true,
       actionLabel: "What’s new",

@@ -37,7 +37,6 @@ export default function NotificationsSheet({
   open,
   onOpenChange,
   items,
-  onItemsChange,
 }: Props) {
   const [tab, setTab] = React.useState<"unread" | "all">("unread");
 
@@ -48,10 +47,6 @@ export default function NotificationsSheet({
 
   const unreadCount = React.useMemo(() => items.filter((n) => !n.read).length, [items]);
 
-  const markAllRead = () => onItemsChange(items.map((n) => ({ ...n, read: true })));
-  const markRead = (id: string) =>
-    onItemsChange(items.map((n) => (n.id === id ? { ...n, read: true } : n)));
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full max-w-md p-0">
@@ -60,14 +55,10 @@ export default function NotificationsSheet({
             <SheetHeader className="p-0">
               <SheetTitle>Notifications</SheetTitle>
               <SheetDescription className="mt-1">
-                Stay on top of system events and updates.
+                Coming Soon...
               </SheetDescription>
             </SheetHeader>
           </div>
-          <Button variant="outline" size="sm" onClick={markAllRead} disabled={unreadCount === 0}>
-            <CheckCheck className="mr-2 h-4 w-4" />
-            Mark all read
-          </Button>
         </div>
 
         {/* Filter */}
@@ -115,7 +106,7 @@ export default function NotificationsSheet({
                           <ActionLink href={n.actionHref} label={n.actionLabel ?? "Open"} />
                         )}
                         {!n.read && (
-                          <Button variant="ghost" size="sm" onClick={() => markRead(n.id)}>
+                          <Button variant="ghost" size="sm">
                             Mark read
                           </Button>
                         )}
@@ -126,16 +117,6 @@ export default function NotificationsSheet({
               ))}
             </ul>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between border-t px-4 py-3">
-          <Button asChild variant="link" className="px-0 text-sm">
-            <Link to="/settings/preferences#notifications">Notification preferences</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/notifications">View all</Link>
-          </Button>
         </div>
       </SheetContent>
     </Sheet>

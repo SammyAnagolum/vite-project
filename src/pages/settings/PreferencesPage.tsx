@@ -1,56 +1,23 @@
 import * as React from "react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import {
   RadioGroup,
   RadioGroupItem,
 } from "@/components/ui/radio-group";
-import { Monitor, SunMedium, MoonStar, RotateCcw } from "lucide-react";
+import { Monitor, SunMedium, MoonStar } from "lucide-react";
 import { useTheme } from "@/providers/theme/use-theme";
-import { toast } from "sonner";
 
 /**
  * Preferences page
  * - Theme: system / light / dark (instant apply via ThemeProvider)
- * - Density: compact toggle (sets html[data-density="compact"])
  *
  * Route from HeaderBar: "/settings"
  */
 
 export default function PreferencesPage() {
   const { theme, setTheme } = useTheme();
-
-  // ---- Density (compact) preference ----
-  const STORAGE_DENSITY = "pref-density"; // "compact" | "comfortable"
-  const [compact, setCompact] = React.useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_DENSITY);
-      return saved ? saved === "compact" : false;
-    } catch {
-      return false;
-    }
-  });
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (compact) {
-      root.setAttribute("data-density", "compact");
-      localStorage.setItem(STORAGE_DENSITY, "compact");
-    } else {
-      root.removeAttribute("data-density");
-      localStorage.setItem(STORAGE_DENSITY, "comfortable");
-    }
-  }, [compact]);
-
-  // ---- Reset to defaults ----
-  const onReset = () => {
-    setTheme("system");
-    setCompact(false);
-    toast.success("Preferences reset to defaults");
-  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -102,34 +69,6 @@ export default function PreferencesPage() {
           />
         </RadioGroup>
       </Card>
-
-      {/* Density */}
-      <Card className="p-4 md:p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-base font-medium">Density</div>
-            <div className="text-sm text-muted-foreground">
-              Compact reduces paddings in tables and lists.
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Label htmlFor="compact-switch" className="text-sm">Compact</Label>
-            <Switch
-              id="compact-switch"
-              checked={compact}
-              onCheckedChange={setCompact}
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Actions */}
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="outline" onClick={onReset}>
-          <RotateCcw className="mr-2 h-4 w-4" />
-          Reset to defaults
-        </Button>
-      </div>
     </div>
   );
 }
