@@ -12,4 +12,16 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  server: {
+    proxy: {
+      // 👇 Only proxy API calls, not your SPA routes
+      "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+        secure: false,
+        // /api/...  ->  http://localhost:3001/portal/api/...
+        rewrite: (path) => path.replace(/^\/api/, "/portal/api"),
+      },
+    },
+  },
 });
