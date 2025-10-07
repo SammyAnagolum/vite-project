@@ -4,11 +4,11 @@ import HeaderBar from "./HeaderBar";
 
 export default function RootLayout() {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-[100dvh] overflow-hidden">
       <Sidebar />
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex flex-1 min-h-0 flex-col">
         <HeaderBar />
-        <main className="flex-1 p-6 py-4">
+        <main className="flex-1 overflow-auto p-6 py-4">
           <Outlet />
         </main>
       </div>

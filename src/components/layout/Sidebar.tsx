@@ -21,7 +21,7 @@ export default function Sidebar() {
         </div>
       </NavLink>
 
-      <div className="h-[calc(100dvh-52px)] overflow-y-auto px-2 py-3">
+      <div className="h-[calc(100dvh-56px)] overflow-y-auto px-2 py-3">
         <nav className="space-y-1">
           {NAV.map((n) => <NavBranch key={n.id} node={n} depth={0} />)}
         </nav>

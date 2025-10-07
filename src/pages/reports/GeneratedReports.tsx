@@ -186,8 +186,8 @@ export default function GeneratedReports() {
   };
 
   return (
-    <div className="">
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+    <div className="h-full min-h-0 flex flex-col">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-6">
         <h1 className="text-2xl font-semibold">Reports</h1>
         <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
         <div className="flex items-center gap-1.5">
@@ -211,59 +211,59 @@ export default function GeneratedReports() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl py-6">
-        <Card className="p-4 md:p-5">
-          {/* Filters */}
-          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
-            <div className="flex-1">
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Search</label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Report name, filter, status…" className="pl-8" />
-              </div>
-            </div>
-
-            <div className="w-full md:w-56">
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
-              <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-                <SelectTrigger><SelectValue placeholder="All statuses" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__ALL__">All statuses</SelectItem>
-                  <SelectItem value="PENDING">PENDING</SelectItem>
-                  <SelectItem value="PROCESSING">PROCESSING</SelectItem>
-                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                  <SelectItem value="FAILED">FAILED</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-2 md:ml-auto">
-              <Button variant="outline" onClick={onReset}>Reset</Button>
-              <Button variant="outline" onClick={refresh} disabled={loading}>
-                <RefreshCcw className="mr-2 h-4 w-4" />
-                Refresh
-              </Button>
+      <Card className="relative p-4 md:p-5 flex-1 min-h-0 flex flex-col overflow-hidden">
+        {/* Filters */}
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="flex-1">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Search</label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Report name, filter, status…" className="pl-8" />
             </div>
           </div>
 
-          {/* Table */}
-          <DataTable<GeneratedRow>
-            data={filtered}
-            columns={cols}
-            showIndex
-            indexHeader="#"
-            startIndex={1}      // 1-based S.NO per page
-            loading={loading}
-            error={err}
-            emptyMessage="Nothing to show."
-            getRowKey={(r) => r.requestId}
-            initialSort={{ key: "name", direction: "asc" }}
-            exportCsvFilename="Generated_Reports.csv" // ← optional
-            exportExcelFilename="Generated_Reports.xlsx"
-            exportInfo={exportInfo}
-          />
-        </Card>
-      </div>
+          <div className="w-full md:w-56">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+            <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
+              <SelectTrigger><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__ALL__">All statuses</SelectItem>
+                <SelectItem value="PENDING">PENDING</SelectItem>
+                <SelectItem value="PROCESSING">PROCESSING</SelectItem>
+                <SelectItem value="COMPLETED">COMPLETED</SelectItem>
+                <SelectItem value="FAILED">FAILED</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex gap-2 md:ml-auto">
+            <Button variant="outline" onClick={onReset}>Reset</Button>
+            <Button variant="outline" onClick={refresh} disabled={loading}>
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <DataTable<GeneratedRow>
+          data={filtered}
+          columns={cols}
+          className="flex-1 min-h-0 w-full"
+          containerClassName="flex-1 min-h-0 w-full"
+          showIndex
+          indexHeader="#"
+          startIndex={1}      // 1-based S.NO per page
+          loading={loading}
+          error={err}
+          emptyMessage="Nothing to show."
+          getRowKey={(r) => r.requestId}
+          initialSort={{ key: "name", direction: "asc" }}
+          exportCsvFilename="Generated_Reports.csv" // ← optional
+          exportExcelFilename="Generated_Reports.xlsx"
+          exportInfo={exportInfo}
+        />
+      </Card>
 
       {/* Delete dialog */}
       <AlertDialog open={!!toDelete} onOpenChange={(v) => !v && setToDelete(null)}>

@@ -236,7 +236,7 @@ export default function RefreshRate() {
   );
 
   return (
-    <div className="">
+    <div className="h-full min-h-0 flex flex-col">
       {!focusMode && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
           <h1 className="text-2xl font-semibold">IAM</h1>
@@ -265,7 +265,7 @@ export default function RefreshRate() {
         </div>
       )}
 
-      <div className="mx-auto max-w-7xl py-4">
+      <div className="h-full min-h-0 py-4 flex flex-col">
         {/* KPIs */}
         {!selectedEntity && !focusMode && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -280,7 +280,7 @@ export default function RefreshRate() {
           </div>
         )}
 
-        <Card className="relative p-4 md:p-5">
+        <Card className="relative p-4 md:p-5 flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Focus toggle – always visible */}
           <div className={"absolute right-1 top-1 z-20"}>
             <TooltipProvider delayDuration={200}>
@@ -374,6 +374,8 @@ export default function RefreshRate() {
             <DataTable<AggregatedRow>
               data={aggregated}
               columns={mainCols}
+              className="flex-1 min-h-0 w-full"
+              containerClassName="flex-1 min-h-0 w-full"
               showIndex
               indexHeader="S.NO"
               startIndex={1}
@@ -445,6 +447,8 @@ function EntityDetailCard({
       <DataTable<DetailRow>
         data={details}
         columns={detailCols}
+        className="flex-1 min-h-0 w-full"
+        containerClassName="flex-1 min-h-0 w-full"
         showIndex
         indexHeader="S.NO"
         startIndex={1}

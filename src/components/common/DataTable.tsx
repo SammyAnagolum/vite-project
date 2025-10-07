@@ -33,6 +33,7 @@ import { saveAs } from "file-saver";
 export default function DataTable<T>({
   data,
   columns,
+  className,
   showIndex = true,
   indexHeader = "S.NO",
   startIndex = 1,
@@ -73,6 +74,7 @@ export default function DataTable<T>({
 }: {
   data: T[];
   columns: DataTableColumn<T>[];
+  className?: string;
   showIndex?: boolean;
   indexHeader?: React.ReactNode;
   startIndex?: number;
@@ -310,7 +312,7 @@ export default function DataTable<T>({
   const colCount = columns.length + (showIndex ? 1 : 0);
 
   return (
-    <div>
+    <div className={cn("flex min-h-0 flex-col", className)}>
       <div className={cn("relative overflow-auto rounded-lg border border-border", containerClassName)}>
         <Table className={cn("w-full text-sm", tableClassName)}>
           <TableHeader
