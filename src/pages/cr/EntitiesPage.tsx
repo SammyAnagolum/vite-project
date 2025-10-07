@@ -391,8 +391,8 @@ export default function EntitiesPage() {
             startIndex={1}
             loading={loading}
             error={err}
-            exportCsvFilename="CR_All_Entities.csv"
-            exportExcelFilename="CR_ALL_Entities.xlsx"
+            exportCsvFilename={`CR_All_Entities_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
+            exportExcelFilename={`CR_ALL_Entities_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
             exportInfo={exportInfo}
           />
         </Card>

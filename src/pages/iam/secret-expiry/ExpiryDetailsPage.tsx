@@ -332,8 +332,8 @@ export default function SecretExpiryDetails() {
             error={err}
             emptyMessage="No records match your filters."
             getRowKey={(r) => r.id}
-            exportCsvFilename="IAM_Secret_Expiry_Details.csv"
-            exportExcelFilename="IAM_Secret_Expiry_Details.xlsx"
+            exportCsvFilename={`IAM_Secret_Expiry_Details_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
+            exportExcelFilename={`IAM_Secret_Expiry_Details_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
             exportInfo={exportInfo}
             initialSort={{ key: "name", direction: "asc" }}
           />

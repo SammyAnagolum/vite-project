@@ -381,8 +381,8 @@ export default function RefreshRate() {
               startIndex={1}
               emptyContent={<EmptyState message={loading ? "Loading…" : "No entities for the selected filters."} />}
               getRowKey={(r) => r.entity_id}
-              exportCsvFilename={`IAM_EntityTokens_RefreshRate_${selectedDate}.csv`}
-              exportExcelFilename={`IAM_EntityTokens_RefreshRate_${selectedDate}.xlsx`}
+              exportCsvFilename={`IAM_EntityTokens_RefreshRate_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
+              exportExcelFilename={`IAM_EntityTokens_RefreshRate_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
               exportInfo={exportInfoMain}
               initialSort={{ key: "name", direction: "asc" }}
               loading={loading}
@@ -455,8 +455,8 @@ function EntityDetailCard({
         emptyContent={<EmptyState message="No token activity for this entity." />}
         getRowKey={(r) => `${entity.entity_id}-${r.date}`}
         paginate={false}
-        exportCsvFilename={`IAM_EntityTokens_${entity.entity_id}_Detail.csv`}
-        exportExcelFilename={`IAM_EntityTokens_${entity.entity_id}_Detail.csv`}
+        exportCsvFilename={`IAM_EntityTokens_${entity.entity_id}_Detail_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
+        exportExcelFilename={`IAM_EntityTokens_${entity.entity_id}_Detail_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
         exportInfo={exportInfoDetail}
         initialSort={{ key: "date", direction: "desc" }}
       />

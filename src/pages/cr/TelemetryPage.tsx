@@ -346,8 +346,8 @@ export default function TelemetryPage() {
             error={err}
             emptyContent={<EmptyState message="No records match your filters." />}
             getRowKey={(r) => r.entity_id}
-            exportCsvFilename={`CR_Telemetry_${dateStr || "all"}.csv`}
-            exportExcelFilename={`CR_Telemetry_${dateStr || "all"}.xlsx`}
+            exportCsvFilename={`CR_Telemetry_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
+            exportExcelFilename={`CR_Telemetry_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
             exportInfo={exportInfo}
           />
         </Card>

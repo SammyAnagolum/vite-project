@@ -259,8 +259,8 @@ export default function GeneratedReports() {
           emptyMessage="Nothing to show."
           getRowKey={(r) => r.requestId}
           initialSort={{ key: "name", direction: "asc" }}
-          exportCsvFilename="Generated_Reports.csv" // ← optional
-          exportExcelFilename="Generated_Reports.xlsx"
+          exportCsvFilename={`Generated_Reports_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`} // ← optional
+          exportExcelFilename={`Generated_Reports_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
           exportInfo={exportInfo}
         />
       </Card>
