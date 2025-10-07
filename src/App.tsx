@@ -11,7 +11,6 @@ import GeneratedReportsPage from "./pages/reports/GeneratedReportsPage";
 import ExecuteReportsPage from "./pages/reports/ExecuteReportsPage";
 import PreferencesPage from "./pages/settings/PreferencesPage";
 import ProfilePage from "./pages/profile/ProfilePage";
-import ChangelogPage from "./pages/changelog/ChangelogPage";
 
 function Fallback() {
   return (
@@ -52,9 +51,6 @@ export default function App() {
 
           {/* Profile */}
           <Route path="/profile" element={<ProfilePage />} />
-
-          {/* Changelog */}
-          <Route path="changelog" element={<ChangelogPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Route>
