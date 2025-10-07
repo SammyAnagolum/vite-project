@@ -1,4 +1,4 @@
-type EntityType = "AA" | "FIP" | "FIU";
+import type { EntityType } from "@/lib/types";
 
 export default function TypeBadge({ type }: { type: EntityType }) {
   const map: Record<EntityType, string> = {
