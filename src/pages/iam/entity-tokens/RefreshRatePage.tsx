@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Calendar, Search, RefreshCcw, TrendingUp, Activity, Clock, BarChart3,
+  Calendar, Search, RefreshCcw, TrendingUp, Clock, BarChart3,
   ArrowLeft, HelpCircle, Minimize2, Maximize2,
   XCircle,
   PieChart,
@@ -146,9 +146,6 @@ export default function RefreshRate() {
     const totalIssued = aggregated.reduce((s, r) => s + r.tokens_issued, 0);
     const totalNotIssued = aggregated.reduce((s, r) => s + r.tokens_not_issued, 0);
     const totalTokens = aggregated.reduce((s, r) => s + r.tokens_total, 0);
-    const avgIssuedPerEntity = aggregated.length ? Math.round(totalIssued / aggregated.length) : 0;
-    const avgNotIssuedPerEntity = aggregated.length ? Math.round(totalNotIssued / aggregated.length) : 0;
-    const avgTotalPerEntity = aggregated.length ? Math.round(totalTokens / aggregated.length) : 0;
 
     const inactive24h = entities.filter((e) => {
       const last = e.recent_timestamp !== "-" ? e.recent_timestamp : "";
@@ -159,7 +156,7 @@ export default function RefreshRate() {
       return diffHrs > 24;
     }).length;
 
-    return { highVolume, inactive24h, totalIssued, totalNotIssued, totalTokens, avgIssuedPerEntity, avgNotIssuedPerEntity, avgTotalPerEntity }
+    return { highVolume, inactive24h, totalIssued, totalNotIssued, totalTokens }
   }, [aggregated, entities, selectedDate]);
 
   // columns
@@ -268,15 +265,12 @@ export default function RefreshRate() {
       <div className="h-full min-h-0 py-4 flex flex-col">
         {/* KPIs */}
         {!selectedEntity && !focusMode && (
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume (>1000 total)" value={kpis.highVolume} tone="emerald" />
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume (>1000)" value={kpis.highVolume} tone="emerald" />
             <Kpi icon={<Clock className="h-9 w-9" />} title="Inactive (24h+)" value={kpis.inactive24h} tone="amber" />
-            <Kpi icon={<BarChart3 className="h-9 w-9" />} title="Total Tokens Issued" value={kpis.totalIssued} tone="indigo" />
-            <Kpi icon={<Activity className="h-9 w-9" />} title="Avg Tokens Issued/Entity" value={kpis.avgIssuedPerEntity} tone="sky" />
-            <Kpi icon={<XCircle className="h-9 w-9" />} title="Total Tokens Not Issued" value={kpis.totalNotIssued} tone="red" />
-            <Kpi icon={<Activity className="h-9 w-9" />} title="Avg Tokens Not Issued/Entity" value={kpis.avgNotIssuedPerEntity} tone="amber" />
+            <Kpi icon={<BarChart3 className="h-9 w-9" />} title="Total Issued" value={kpis.totalIssued} tone="indigo" />
+            <Kpi icon={<XCircle className="h-9 w-9" />} title="Total Not Issued" value={kpis.totalNotIssued} tone="red" />
             <Kpi icon={<PieChart className="h-9 w-9" />} title="Total Tokens" value={kpis.totalTokens} tone="indigo" />
-            <Kpi icon={<Activity className="h-9 w-9" />} title="Avg Token Total/Entity" value={kpis.avgTotalPerEntity} tone="sky" />
           </div>
         )}
 
