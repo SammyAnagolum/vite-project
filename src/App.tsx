@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
 import RootLayout from "@/components/layout/RootLayout";
 import NotFound from "@/pages/NotFound";
-import UserTokensPage from "./pages/iam/UserTokensPage";
 import ExpiryDetailsPage from "./pages/iam/secret-expiry/ExpiryDetailsPage";
 import TelemetryPage from "./pages/cr/TelemetryPage";
 import EntitiesPage from "./pages/cr/EntitiesPage";
@@ -39,7 +38,6 @@ export default function App() {
           <Route path="/iam/secret-expiry/details" element={<ExpiryDetailsPage />} />
           <Route path="/iam/entity-tokens" element={<Navigate to="/iam/entity-tokens/refresh-rate" replace />} />
           <Route path="/iam/entity-tokens/refresh-rate" element={<RefreshRatePage />} />
-          <Route path="/iam/user-tokens" element={<UserTokensPage />} />
 
           {/* Reports */}
           <Route path="/reports" element={<Navigate to="/reports/execute-reports" replace />} />
