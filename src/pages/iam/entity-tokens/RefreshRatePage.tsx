@@ -142,7 +142,7 @@ export default function RefreshRate() {
 
   // KPIs
   const kpis = useMemo(() => {
-    const highVolume = aggregated.filter((r) => r.tokens_total > 5).length;
+    const highVolume = aggregated.filter((r) => r.tokens_total > 1000).length;
     const totalIssued = aggregated.reduce((s, r) => s + r.tokens_issued, 0);
     const totalNotIssued = aggregated.reduce((s, r) => s + r.tokens_not_issued, 0);
     const totalTokens = aggregated.reduce((s, r) => s + r.tokens_total, 0);
@@ -269,7 +269,7 @@ export default function RefreshRate() {
         {/* KPIs */}
         {!selectedEntity && !focusMode && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume (>5)" value={kpis.highVolume} tone="emerald" />
+            <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume (>1000 total)" value={kpis.highVolume} tone="emerald" />
             <Kpi icon={<Clock className="h-9 w-9" />} title="Inactive (24h+)" value={kpis.inactive24h} tone="amber" />
             <Kpi icon={<BarChart3 className="h-9 w-9" />} title="Total Tokens Issued" value={kpis.totalIssued} tone="indigo" />
             <Kpi icon={<Activity className="h-9 w-9" />} title="Avg Tokens Issued/Entity" value={kpis.avgIssuedPerEntity} tone="sky" />

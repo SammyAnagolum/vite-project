@@ -60,7 +60,7 @@ const CHANGES: ChangeItem[] = [
     tags: ["IAM", "Security"],
     bullets: [
       "Normalized assorted expiry fields to IST `YYYY-MM-DD HH:mm:ss`.",
-      "KPI cards: Already Expired, Expiring Today, Expiring ≤ 10 days, and Most Expired Type.",
+      "KPI cards: Already Expired, Expiring Today, Expiring in ≤ 10 days, and Most Expired Type.",
       "“Expiring Today” counts items whose day-difference to now is exactly 0 (whole-day check).",
       "Safer type inference + coalescing across legacy keys (e.g., `expiry`, `expiry_datetime`, `secret_expiry`).",
     ],

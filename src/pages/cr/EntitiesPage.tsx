@@ -153,10 +153,10 @@ export default function EntitiesPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => openView(r)} aria-label="View">
             <Eye className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20" onClick={() => openEdit(r)} aria-label="Edit">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:text-muted-foreground" onClick={() => openEdit(r)} aria-label="Edit" disabled>
             <PencilLine className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => openDelete(r)} aria-label="Delete">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 disabled:text-muted-foreground" onClick={() => openDelete(r)} aria-label="Delete" disabled>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>

@@ -228,7 +228,7 @@ export default function SecretExpiryDetails() {
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi title="Already Expired" value={kpis.expired} tone="red" icon={<AppIcons.TriangleAlert className="h-9 w-9" />} />
             <Kpi title="Expiring Today" value={kpis.today} tone="amber" icon={<AppIcons.CalendarDays className="h-9 w-9" />} />
-            <Kpi title="Expiring ≤ 10 days" value={kpis.soon} tone="sky" icon={<AppIcons.CalendarClock className="h-9 w-9" />} />
+            <Kpi title="Expiring in ≤ 10 days" value={kpis.soon} tone="sky" icon={<AppIcons.CalendarClock className="h-9 w-9" />} />
             <Kpi title="Most Expired Type" value={kpis.mostExpiredType} tone="indigo" icon={<AppIcons.ShieldAlert className="h-9 w-9" />} />
           </div>
         )}
