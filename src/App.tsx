@@ -10,7 +10,9 @@ import GeneratedReportsPage from "./pages/reports/GeneratedReportsPage";
 import ExecuteReportsPage from "./pages/reports/ExecuteReportsPage";
 import PreferencesPage from "./pages/settings/PreferencesPage";
 import ProfilePage from "./pages/profile/ProfilePage";
-import { useConfig } from "./context/useConfig";
+import { useConfig } from "./providers/config/useConfig";
+import SignInPage from "./pages/signin/SignIn";
+import ProtectedLayout from "./routes/ProtectedLayout";
 
 function Fallback() {
   return (
@@ -27,36 +29,43 @@ export default function App() {
   return (
     <ErrorBoundary FallbackComponent={Fallback}>
       <Routes>
-        <Route element={<RootLayout />}>
-          <Route index element={<Navigate to="/cr/entities" replace />} />
+        <Route path="/signin" element={<SignInPage />} />
 
-          {/* CR */}
-          <Route path="/cr" element={<Navigate to="/cr/entities" replace />} />
-          <Route path="/cr/entities" element={<EntitiesPage />} />
-          <Route path="/cr/telemetry" element={<TelemetryPage />} />
+        <Route element={<ProtectedLayout />}>
+          <Route element={<RootLayout />}>
+            <Route index element={<Navigate to="/cr/entities" replace />} />
 
-          {/* IAM */}
-          <Route path="/iam" element={<Navigate to="/iam/secret-expiry/details" replace />} />
-          <Route path="/iam/secret-expiry" element={<Navigate to="/iam/secret-expiry/details" replace />} />
-          <Route path="/iam/secret-expiry/details" element={<ExpiryDetailsPage />} />
-          <Route path="/iam/entity-tokens" element={<Navigate to="/iam/entity-tokens/refresh-rate" replace />} />
-          <Route path="/iam/entity-tokens/refresh-rate" element={<RefreshRatePage />} />
+            {/* CR */}
+            <Route path="/cr" element={<Navigate to="/cr/entities" replace />} />
+            <Route path="/cr/entities" element={<EntitiesPage />} />
+            <Route path="/cr/telemetry" element={<TelemetryPage />} />
 
-          {/* Reports */}
-          {config.REPORTS_TAB_ENABLED && <>
-            <Route path="/reports" element={<Navigate to="/reports/execute-reports" replace />} />
-            <Route path="/reports/execute-reports" element={<ExecuteReportsPage />} />
-            <Route path="/reports/generated-reports" element={<><GeneratedReportsPage /></>} />
-          </>}
+            {/* IAM */}
+            <Route path="/iam" element={<Navigate to="/iam/secret-expiry/details" replace />} />
+            <Route path="/iam/secret-expiry" element={<Navigate to="/iam/secret-expiry/details" replace />} />
+            <Route path="/iam/secret-expiry/details" element={<ExpiryDetailsPage />} />
+            <Route path="/iam/entity-tokens" element={<Navigate to="/iam/entity-tokens/refresh-rate" replace />} />
+            <Route path="/iam/entity-tokens/refresh-rate" element={<RefreshRatePage />} />
 
-          {/* Settings */}
-          <Route path="/settings" element={<PreferencesPage />} />
+            {/* Reports */}
+            {config.REPORTS_TAB_ENABLED && <>
+              <Route path="/reports" element={<Navigate to="/reports/execute-reports" replace />} />
+              <Route path="/reports/execute-reports" element={<ExecuteReportsPage />} />
+              <Route path="/reports/generated-reports" element={<><GeneratedReportsPage /></>} />
+            </>}
 
-          {/* Profile */}
-          <Route path="/profile" element={<ProfilePage />} />
+            {/* Settings */}
+            <Route path="/settings" element={<PreferencesPage />} />
 
-          <Route path="*" element={<NotFound />} />
+            {/* Profile */}
+            <Route path="/profile" element={<ProfilePage />} />
+
+            <Route path="*" element={<NotFound />} />
+          </Route>
         </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>
     </ErrorBoundary>
   );
