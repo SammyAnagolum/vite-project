@@ -1,6 +1,6 @@
 // src/components/layout/HeaderBar.tsx
 import * as React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import ModeToggle from "../common/ModeToggle";
 import NotificationsSheet, { type NotificationItem } from "./NotificationsSheet";
 import HelpDialog from "./HelpDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { clearUser, getUser } from "@/lib/authStorage";
 
 const ACRONYMS: Record<string, string> = { cr: "CR", iam: "IAM" };
 
@@ -49,12 +50,15 @@ function Breadcrumbs() {
 }
 
 export default function HeaderBar() {
-  // wire real user/email via auth context later
-  const user = { name: "Admin User", email: "admin@example.com" };
-  const initials = React.useMemo(
-    () => user.name.split(" ").map(s => s[0]).join("").slice(0, 2).toUpperCase(),
-    [user.name]
-  );
+  const navigate = useNavigate();
+
+  const user = React.useMemo(() => getUser(), []);
+
+  const initials = React.useMemo(() => {
+    const source = user?.email ?? "";
+    const base = source.split("@")[0] || "";
+    return (base.slice(0, 2) || "?").toUpperCase();
+  }, [user?.email]);
 
   // environment label
   const envLabel = import.meta.env.VITE_APP_ENV || "Sandbox";
@@ -125,37 +129,48 @@ export default function HeaderBar() {
       </TooltipProvider>
 
       {/* User menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-9 gap-2 px-2">
-            <Avatar className="h-7 w-7">
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <span className="hidden text-sm text-muted-foreground sm:inline">{user.email}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end">
-          <DropdownMenuLabel className="leading-tight">
-            <div className="text-lg font-medium">{user.name}</div>
-            <div className="text-base text-muted-foreground">{user.email}</div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link to="/profile" className="flex w-full items-center gap-2">
-              <User className="h-4 w-4" /> Profile
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link to="/settings" className="flex w-full items-center gap-2">
-              <Settings className="h-4 w-4" /> Preferences
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => { /* hook sign-out here */ }} className="text-destructive">
-            <LogOut className="mr-2 h-4 w-4" /> Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {user ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="h-9 gap-2 px-2">
+              <Avatar className="h-7 w-7">
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <span className="hidden text-sm text-muted-foreground sm:inline">{user.email}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuLabel className="leading-tight">
+              <div className="text-base text-muted-foreground">{user.email}</div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/profile" className="flex w-full items-center gap-2">
+                <User className="h-4 w-4" /> Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/settings" className="flex w-full items-center gap-2">
+                <Settings className="h-4 w-4" /> Preferences
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                clearUser();
+                navigate("/signin", { replace: true });
+              }}
+              className="text-destructive"
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <Button variant="outline" onClick={() => navigate("/signin")} className="h-9">
+          Sign in
+        </Button>
+      )}
 
       {/* Overlays */}
       <NotificationsSheet
@@ -181,7 +196,7 @@ function seedNotifications(): NotificationItem[] {
       type: "system",
       read: false,
       actionLabel: "Learn more",
-      actionHref: "/changelog",
+      actionHref: "",
     },
     {
       id: "n2",
@@ -191,7 +206,7 @@ function seedNotifications(): NotificationItem[] {
       type: "system",
       read: true,
       actionLabel: "What’s new",
-      actionHref: "/changelog",
+      actionHref: "",
     },
   ];
 }
