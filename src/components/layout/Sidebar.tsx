@@ -5,7 +5,7 @@ import * as Collapsible from "@radix-ui/react-collapsible";
 import { cn } from "@/lib/utils";
 import { NAV, type NavNode } from "@/navigation/nav";
 import BrandLogo from "../common/BrandLogo";
-import { useConfig } from "@/context/useConfig";
+import { useConfig } from "@/providers/config/useConfig";
 
 function branchHasActiveDescendant(node: NavNode, pathname: string): boolean {
   if (node.path && pathname.startsWith(node.path)) return true;
@@ -26,7 +26,7 @@ export default function Sidebar() {
       <div className="h-[calc(100dvh-56px)] overflow-y-auto px-2 py-3">
         <nav className="space-y-1">
           {NAV.filter(item => (item.id !== 'reports' || config.REPORTS_TAB_ENABLED))
-          .map((n) => <NavBranch key={n.id} node={n} depth={0} />)}
+            .map((n) => <NavBranch key={n.id} node={n} depth={0} />)}
         </nav>
       </div>
     </aside>
