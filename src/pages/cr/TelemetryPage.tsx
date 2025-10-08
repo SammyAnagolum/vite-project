@@ -23,7 +23,6 @@ import {
   type EntityListItem,
   fetchCRTelemetry,
   computeLastByEntity,
-  inferEntityTypeFromName,
   type CrTelemetryRow,
 } from "@/services/crApi";
 import { extractErrorMessage } from "@/lib/http";
@@ -104,14 +103,16 @@ export default function TelemetryPage() {
     telemetry.forEach(ev => {
       if (!ev.entity_id) return;
       if (!base.has(ev.entity_id)) return;           // skip telemetry-only rows
-      if (dateStr && ev.date !== dateStr) return;    // date filter
+      if (dateStr && ev.date !== dateStr) return;    // date filter: do not merge if the dates don't match
       const row = base.get(ev.entity_id)!;
-      // overwrite metadata from telemetry when available
-      if (ev.entity_name) {
-        row.name = ev.entity_name;
-        row.type = inferEntityTypeFromName(ev.entity_name);
-      }
+
+      // overwrite count and recent fetch data using telemetry
       row.call_count += ev.call_count;
+      row.recent_fetch_time = [row.recent_fetch_time, ev.last_fetch_time]
+        .filter((s): s is string => !!s && s !== "-") // Remove empty times
+        .sort((a, b) => Date.parse(a.replace(" ", "T")) - Date.parse(b.replace(" ", "T"))) // Sort ascending
+        .pop() // Get last element (most recent time)
+        ?? row.recent_fetch_time; // Default to cr response if both are empty
     });
 
     // filtering
