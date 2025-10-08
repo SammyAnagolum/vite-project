@@ -1,11 +1,18 @@
 // src/lib/http.ts
 import axios from "axios";
 
-export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const ENV_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").trim().replace(/\/+$/, "");
+const DEFAULT_BASE = ENV_BASE || "/api"; // dev default goes through Vite proxy
 
 export const api = axios.create({
-  baseURL: API_BASE, // dev: /api  → proxied to /portal/api
+  baseURL: DEFAULT_BASE,
 });
+
+export function setApiBase(url?: string) {
+  const clean = typeof url === "string" && url.trim() ? url : DEFAULT_BASE;
+  clean.replace(/\/+$/, ""); // strip trailing slashes
+  api.defaults.baseURL = clean.endsWith("/api") ? clean : `${clean}/api`; // Make sure we hit /api
+}
 
 export function extractErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
