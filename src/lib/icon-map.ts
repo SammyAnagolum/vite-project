@@ -7,11 +7,6 @@ import {
     Activity,
     Users,
     RefreshCcw,
-    FileBarChart2,
-    CheckCircle2,
-    Clock,
-    XCircle,
-    LoaderCircle,
     CalendarClock,
     TriangleAlert,
     CalendarDays
@@ -27,17 +22,10 @@ export const AppIcons = {
     Activity,
     Users,
     RefreshCcw,
-    Reports: FileBarChart2,
     ShieldAlert,
     CalendarClock,
     TriangleAlert,
     CalendarDays,
-
-    // statuses
-    Pending: Clock,
-    Processing: LoaderCircle,
-    Completed: CheckCircle2,
-    Failed: XCircle,
 } as const;
 
 export type AppIconKey = keyof typeof AppIcons;
