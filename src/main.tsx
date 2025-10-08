@@ -5,16 +5,35 @@ import { Toaster } from "sonner";
 import './index.css'
 import App from './App.tsx'
 import { ThemeProvider } from './providers/theme/theme-provider.tsx';
+import { ConfigProvider } from './context/configProvider.tsx';
+import { setApiBase } from './lib/http.ts';
 
 const BASENAME = import.meta.env.VITE_APP_BASENAME ?? "/";
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ThemeProvider>
-      <BrowserRouter basename={BASENAME}>
-        <App />
-        <Toaster position="top-right" richColors />
-      </BrowserRouter>
-    </ThemeProvider>
-  </StrictMode>,
-)
+const fetchConfig = async () => {
+  try {
+    const response = await fetch(`http://localhost:3001/portal/api/config`);
+    const config = await response.json();
+    return config;
+  } catch (error) {
+    console.error("Failed to fetch config:", error);
+    return {};
+  }
+};
+
+fetchConfig().then((config) => {
+  setApiBase(config.REACT_APP_SERVER_URL);
+
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <ConfigProvider config={config}>
+        <ThemeProvider>
+          <BrowserRouter basename={BASENAME}>
+            <App />
+            <Toaster position="top-right" richColors />
+          </BrowserRouter>
+        </ThemeProvider>
+      </ConfigProvider>
+    </StrictMode>,
+  );
+});
