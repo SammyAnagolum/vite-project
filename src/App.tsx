@@ -10,6 +10,7 @@ import GeneratedReportsPage from "./pages/reports/GeneratedReportsPage";
 import ExecuteReportsPage from "./pages/reports/ExecuteReportsPage";
 import PreferencesPage from "./pages/settings/PreferencesPage";
 import ProfilePage from "./pages/profile/ProfilePage";
+import { useConfig } from "./context/useConfig";
 
 function Fallback() {
   return (
@@ -21,6 +22,8 @@ function Fallback() {
 }
 
 export default function App() {
+  const config = useConfig();
+
   return (
     <ErrorBoundary FallbackComponent={Fallback}>
       <Routes>
@@ -40,9 +43,11 @@ export default function App() {
           <Route path="/iam/entity-tokens/refresh-rate" element={<RefreshRatePage />} />
 
           {/* Reports */}
-          <Route path="/reports" element={<Navigate to="/reports/execute-reports" replace />} />
-          <Route path="/reports/execute-reports" element={<ExecuteReportsPage />} />
-          <Route path="/reports/generated-reports" element={<><GeneratedReportsPage /></>} />
+          {config.REPORTS_TAB_ENABLED && <>
+            <Route path="/reports" element={<Navigate to="/reports/execute-reports" replace />} />
+            <Route path="/reports/execute-reports" element={<ExecuteReportsPage />} />
+            <Route path="/reports/generated-reports" element={<><GeneratedReportsPage /></>} />
+          </>}
 
           {/* Settings */}
           <Route path="/settings" element={<PreferencesPage />} />
