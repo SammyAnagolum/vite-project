@@ -5,7 +5,7 @@ import { Toaster } from "sonner";
 import './index.css'
 import App from './App.tsx'
 import { ThemeProvider } from './providers/theme/theme-provider.tsx';
-import { ConfigProvider } from './context/configProvider.tsx';
+import { ConfigProvider } from './providers/config/configProvider.tsx';
 import { setApiBase } from './lib/http.ts';
 
 const BASENAME = import.meta.env.VITE_APP_BASENAME ?? "/";
