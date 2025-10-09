@@ -9,11 +9,6 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Separator } from "@/components/ui/separator";
 import { RefreshCw, Eye, PencilLine, Trash2, Copy, Maximize2, Minimize2, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Section } from "@/components/common/Section";
@@ -24,18 +19,16 @@ import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
 import { toast } from "sonner";
 import TypeBadge from "@/components/common/TypeBadge";
-import type { Entity, EntityType } from "@/lib/types";
+import type { Entity, EntityType, FilterType } from "@/lib/types";
 import {
   fetchAllEntities,
   fetchEntityDetails,
-  updateEntity,
   type EntityDetails as ServerEntityDetails,
 } from "@/services/crApi";
 import { extractErrorMessage } from "@/lib/http";
+import { exportedAtIST, ymd } from "@/lib/datetime";
 
 /** ------------------------------------ Types ------------------------------------ */
-type FilterType = "all" | EntityType;
-
 type EntityDetails = {
   name: string;
   id: string;
@@ -53,28 +46,17 @@ export default function EntitiesPage() {
   const [err, setErr] = useState<string | null>(null);
 
   // filters
-  const [qName, setQName] = useState("");
-  const [qId, setQId] = useState("");
-  const [qType, setQType] = useState<FilterType>("all");
+  const [nameQuery, setNameQuery] = useState("");
+  const [idQuery, setIdQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<FilterType>("all");
 
   // ui state
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [selected, setSelected] = useState<Entity | null>(null);
 
-  // view/edit details
+  // view details for a specific entity
   const [details, setDetails] = useState<EntityDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
-
-  // edit form
-  const [editForm, setEditForm] = useState<{ name: string; type: EntityType; spocEmail?: string; baseUrl?: string }>({
-    name: "",
-    type: "FIP",
-    spocEmail: "",
-    baseUrl: "",
-  });
 
   // Focus mode (hide header/KPIs; keep toggle visible)
   const [focusMode, setFocusMode] = useState<boolean>(false);
@@ -102,34 +84,29 @@ export default function EntitiesPage() {
 
   // filter results
   const filtered = useMemo(() => {
-    const nq = qName.trim().toLowerCase();
-    const iq = qId.trim().toLowerCase();
+    const nq = nameQuery.trim().toLowerCase();
+    const iq = idQuery.trim().toLowerCase();
     return rows.filter((r) => {
       const byName = !nq || r.name.toLowerCase().includes(nq);
       const byId = !iq || r.id.toLowerCase().includes(iq);
-      const byType = qType === "all" || r.type === qType;
+      const byType = typeFilter === "all" || r.type === typeFilter;
       return byName && byId && byType;
     });
-  }, [rows, qName, qId, qType]);
+  }, [rows, nameQuery, idQuery, typeFilter]);
 
+  // Info added to the exported excel file
   const exportInfo = useMemo(() => {
     const items: Array<{ label: string; value: string }> = [];
-    if (qName.trim()) items.push({ label: "Name contains", value: qName.trim() });
-    if (qId.trim()) items.push({ label: "Entity ID contains", value: qId.trim() });
-    items.push({ label: "Type", value: qType === "all" ? "All" : qType });
+    if (nameQuery.trim()) items.push({ label: "Name contains", value: nameQuery.trim() });
+    if (idQuery.trim()) items.push({ label: "Entity ID contains", value: idQuery.trim() });
+    items.push({ label: "Type", value: typeFilter === "all" ? "All" : typeFilter });
 
     items.push({ label: "Rows (filtered)", value: String(filtered.length) });
-    items.push({
-      label: "Exported At",
-      value: new Intl.DateTimeFormat("en-GB", {
-        dateStyle: "medium",
-        timeStyle: "medium",
-      }).format(new Date()),
-    });
+    items.push({ label: "Exported At (IST)", value: exportedAtIST() });
     return items;
-  }, [qName, qId, qType, filtered.length]);
+  }, [nameQuery, idQuery, typeFilter, filtered.length]);
 
-  // stats
+  // stats for kpis
   const stats = useMemo(() => {
     const total = filtered.length;
     const byAA = filtered.filter((r) => r.type === "AA").length;
@@ -153,10 +130,10 @@ export default function EntitiesPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => openView(r)} aria-label="View">
             <Eye className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:text-muted-foreground" onClick={() => openEdit(r)} aria-label="Edit" disabled>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 disabled:text-muted-foreground" aria-label="Edit" disabled>
             <PencilLine className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 disabled:text-muted-foreground" onClick={() => openDelete(r)} aria-label="Delete" disabled>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 disabled:text-muted-foreground" aria-label="Delete" disabled>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -165,9 +142,9 @@ export default function EntitiesPage() {
   ], []);
 
   const resetFilters = () => {
-    setQName("");
-    setQId("");
-    setQType("all");
+    setNameQuery("");
+    setIdQuery("");
+    setTypeFilter("all");
   };
 
   const refetch = async () => {
@@ -185,7 +162,6 @@ export default function EntitiesPage() {
 
   /** ---------- Actions ---------- */
   const openView = async (row: Entity) => {
-    setSelected(row);
     setViewOpen(true);
     setDetails(null);
     try {
@@ -199,56 +175,6 @@ export default function EntitiesPage() {
     }
   };
 
-  const openEdit = async (row: Entity) => {
-    setSelected(row);
-    setEditOpen(true);
-    // prefill from details endpoint if available, else minimal
-    try {
-      const d = await fetchEntityDetails(row.id);
-      setEditForm({
-        name: row.name,
-        type: row.type,
-        spocEmail: d.spocEmail ?? "",
-        baseUrl: d.baseUrl ?? "",
-      });
-    } catch {
-      setEditForm({ name: row.name, type: row.type, spocEmail: "", baseUrl: "" });
-    }
-  };
-
-  const saveEdit = async () => {
-    if (!selected) return;
-    try {
-      await updateEntity(selected.id, editForm.type, {
-        name: editForm.name,
-        spocEmail: editForm.spocEmail,
-        baseUrl: editForm.baseUrl,
-      });
-      // reflect minimal changes in the list
-      setRows(prev =>
-        prev.map(r =>
-          r.id === selected.id ? { ...r, name: editForm.name, type: editForm.type } : r
-        )
-      );
-      toast.success("Entity updated");
-      setEditOpen(false);
-    } catch (e) {
-      toast.error(extractErrorMessage(e));
-    }
-  };
-
-  const openDelete = (row: Entity) => {
-    setSelected(row);
-    setConfirmOpen(true);
-  };
-
-  const confirmDelete = () => {
-    // No delete API was provided; keep this local-only demo
-    if (!selected) return;
-    setRows((prev) => prev.filter((r) => r.id !== selected.id));
-    setConfirmOpen(false);
-    toast.success("Entity removed (local)");
-  };
 
   const copyJson = async (obj: unknown, label: string) => {
     try {
@@ -338,8 +264,8 @@ export default function EntitiesPage() {
               </label>
               <Input
                 placeholder="e.g. FIP-SIMULATOR"
-                value={qName}
-                onChange={(e) => setQName(e.target.value)}
+                value={nameQuery}
+                onChange={(e) => setNameQuery(e.target.value)}
               />
             </div>
 
@@ -349,14 +275,14 @@ export default function EntitiesPage() {
               </label>
               <Input
                 placeholder="e.g. FIP-SIMULATOR-09"
-                value={qId}
-                onChange={(e) => setQId(e.target.value)}
+                value={idQuery}
+                onChange={(e) => setIdQuery(e.target.value)}
               />
             </div>
 
             <div className="w-full md:w-56">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">RE Type</label>
-              <Select value={qType} onValueChange={(v) => setQType(v as FilterType)}>
+              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as FilterType)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
@@ -391,8 +317,8 @@ export default function EntitiesPage() {
             startIndex={1}
             loading={loading}
             error={err}
-            exportCsvFilename={`CR_All_Entities_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
-            exportExcelFilename={`CR_ALL_Entities_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
+            exportCsvFilename={`CR_All_Entities_Downloaded-Date-${ymd()}.csv`}
+            exportExcelFilename={`CR_ALL_Entities_Downloaded-Date-${ymd()}.xlsx`}
             exportInfo={exportInfo}
           />
         </Card>
@@ -467,87 +393,6 @@ export default function EntitiesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* -------------------------- Edit Dialog -------------------------- */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Edit Entity</DialogTitle>
-            <DialogDescription>
-              Update basic properties. Changes are sent to the server.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Name</label>
-              <Input
-                value={editForm.name}
-                onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Type</label>
-              <Select
-                value={editForm.type}
-                onValueChange={(v) => setEditForm((f) => ({ ...f, type: v as EntityType }))}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AA">AA</SelectItem>
-                  <SelectItem value="FIP">FIP</SelectItem>
-                  <SelectItem value="FIU">FIU</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Separator />
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">SPOC email</label>
-              <Input
-                type="email"
-                value={editForm.spocEmail ?? ""}
-                onChange={(e) => setEditForm((f) => ({ ...f, spocEmail: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Base URL</label>
-              <Input
-                value={editForm.baseUrl ?? ""}
-                onChange={(e) => setEditForm((f) => ({ ...f, baseUrl: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={saveEdit}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ----------------------- Delete Confirmation (Alert) --------------------- */}
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete entity?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. You are about to delete{" "}
-              <span className="font-medium">{selected?.name}</span>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={confirmDelete}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
-
