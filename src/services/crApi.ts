@@ -34,9 +34,9 @@ function mapListItem(row: any): EntityListItem {
   // The API returns wrapper objects: { requester, entityinfo, ... }
   const ei = row?.entityinfo ?? row;
 
-  const name = coalesce<string>(ei?.name, row?.requester?.name, row?.entity_name, row?.entityName) ?? "Unknown";
+  const name = coalesce<string>(ei?.name, row?.requester?.name) ?? "Unknown";
 
-  const id = coalesce<string>(ei?.id, row?.requester?.id, row?.entity_id, row?.entityId) ?? "unknown-id";
+  const id = coalesce<string>(ei?.id, row?.requester?.id) ?? "unknown-id";
 
   const type = toEntityType(coalesce(ei?.type, row?.entity_type, row?.type));
 
@@ -77,7 +77,7 @@ export async function fetchAllEntities(): Promise<EntityListItem[]> {
 
 // GET /api/cr/entityinfo/:entityId
 export async function fetchEntityDetails(entityId: string): Promise<EntityDetails> {
-  const res = await api.get(`/cr/entityinfo/${encodeURIComponent(entityId)}`);
+  const res = await api.get(`/cr/entityinfo/${entityId}`);
   // details could be a wrapper or plain entityinfo; mapDetails handles both
   const data = Array.isArray(res.data) ? res.data[0] : res.data;
   return mapDetails(data ?? {});
@@ -154,12 +154,4 @@ export function computeLastByEntity(rows: CrTelemetryRow[]): Record<string, stri
     }
   }
   return last;
-}
-
-/** Try to infer type from a best-effort name hint; if not possible, fallback to "FIP". */
-export function inferEntityTypeFromName(name?: string): EntityType {
-  const s = String(name ?? "").toUpperCase();
-  if (/\bAA\b/.test(s) || s.includes("AA-")) return "AA";
-  if (/\bFIU\b/.test(s) || s.includes("FIU-")) return "FIU";
-  return "FIP";
 }

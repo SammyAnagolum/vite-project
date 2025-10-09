@@ -2,7 +2,6 @@
 import { LogoHoriz, LogoVert, LogoMark, LogoHorizDark } from "@/lib/brand";
 import { useTheme } from "@/providers/theme/use-theme";
 
-
 type Variant = "horizontal" | "vertical" | "mark";
 
 export default function BrandLogo({
