@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useReportsApi } from "@/services/reportsApi"; // fetchDashboards, generateReport
 import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
+import { fmtIST, parseIstString } from "@/lib/datetime";
 
 type Dashboard = {
   id: string;
@@ -267,7 +268,7 @@ export default function ExecuteReportsPage() {
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Selected: {parsedRange ? fmtDT(parsedRange.start) + " - " + fmtDT(parsedRange.end) : ""} : {range}
+                  Selected: {parsedRange ? fmtIST(parsedRange.start) + " - " + fmtIST(parsedRange.end) : ""} : {range}
                 </div>
               </div>
             </div>
@@ -307,10 +308,6 @@ export default function ExecuteReportsPage() {
 }
 
 /** Helpers **/
-function fmtDT(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
 
 function buildRange(
   label: QuickRange,
@@ -319,12 +316,12 @@ function buildRange(
 ): { start: Date; end: Date } | null {
   if (label === "Custom") {
     if (!fromDate || !toDate) return null;
-    const s = new Date(`${fromDate}T${fromTime || "00:00"}:00`);
-    const e = new Date(`${toDate}T${toTime || "23:59"}:59`);
-    if (isNaN(s.getTime()) || isNaN(e.getTime()) || s > e) return null;
+    const s = parseIstString(`${fromDate} ${fromTime ? `${fromTime}:00` : "00:00:00"}`);
+    const e = parseIstString(`${toDate} ${toTime ? `${toTime}:59` : "23:59:59"}`);
+    if (!s || !e || s > e) return null;
     return { start: s, end: e };
   }
-  const end = new Date();
+  const end = parseIstString(fmtIST())!;
   const start = new Date(end);
   const map: Record<string, number> = {
     "Last 5 minutes": 5 * 60,

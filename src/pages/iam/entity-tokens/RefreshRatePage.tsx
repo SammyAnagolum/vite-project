@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { extractErrorMessage } from "@/lib/http";
 import { fetchTokenData, type TokenTelemetryRow } from "@/services/iamApi";
 import { fetchAllEntities, type EntityListItem } from "@/services/crApi";
+import { ymd, parseIstString, istStartOfDay, exportedAtIST } from "@/lib/datetime";
 
 /** ---------------- Types (UI shapes) ---------------- */
 type DetailRow = {
@@ -39,7 +40,7 @@ const EMPTY_DETAILS: DetailRow[] = [];
 /** ---------------- Page ---------------- */
 export default function RefreshRate() {
   // filters
-  const [selectedDate, setSelectedDate] = useState<string>(() => todayISO());
+  const [selectedDate, setSelectedDate] = useState<string>(() => ymd());
   const [qName, setQName] = useState("");
   const [qId, setQId] = useState("");
 
@@ -135,7 +136,7 @@ export default function RefreshRate() {
     items.push({ label: "Rows (filtered)", value: String(aggregated.length) });
     items.push({
       label: "Exported At (IST)",
-      value: new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium" }).format(new Date()),
+      value: exportedAtIST(),
     });
     return items;
   }, [selectedDate, qName, qId, aggregated.length]);
@@ -150,9 +151,10 @@ export default function RefreshRate() {
     const inactive24h = entities.filter((e) => {
       const last = e.recent_timestamp !== "-" ? e.recent_timestamp : "";
       if (!last) return true;
-      const lastDate = new Date(last.replace(" ", "T"));
-      const sel = new Date(`${selectedDate}T00:00:00`);
-      const diffHrs = Math.abs(+sel - +lastDate) / 36e5;
+      const lastDate = parseIstString(last);
+      if (!lastDate) return true;
+      const selStart = istStartOfDay(selectedDate);
+      const diffHrs = Math.abs(selStart.getTime() - lastDate.getTime()) / 36e5;
       return diffHrs > 24;
     }).length;
 
@@ -222,7 +224,7 @@ export default function RefreshRate() {
   ];
 
   const resetFilters = () => {
-    setSelectedDate(todayISO());
+    setSelectedDate(ymd());
     setQName("");
     setQId("");
   };
@@ -375,8 +377,8 @@ export default function RefreshRate() {
               startIndex={1}
               emptyContent={<EmptyState message={loading ? "Loading…" : "No entities for the selected filters."} />}
               getRowKey={(r) => r.entity_id}
-              exportCsvFilename={`IAM_EntityTokens_RefreshRate_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
-              exportExcelFilename={`IAM_EntityTokens_RefreshRate_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
+              exportCsvFilename={`IAM_EntityTokens_RefreshRate_Downloaded-Date-${ymd()}.csv`}
+              exportExcelFilename={`IAM_EntityTokens_RefreshRate_Downloaded-Date-${ymd()}.xlsx`}
               exportInfo={exportInfoMain}
               initialSort={{ key: "name", direction: "asc" }}
               loading={loading}
@@ -422,7 +424,7 @@ function EntityDetailCard({
       { label: "Rows", value: String(details.length) },
       {
         label: "Exported At (IST)",
-        value: new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium" }).format(new Date()),
+        value: exportedAtIST(),
       },
     ];
   }, [entity, details.length]);
@@ -449,8 +451,8 @@ function EntityDetailCard({
         emptyContent={<EmptyState message="No token activity for this entity." />}
         getRowKey={(r) => `${entity.entity_id}-${r.date}`}
         paginate={false}
-        exportCsvFilename={`IAM_EntityTokens_${entity.entity_id}_Detail_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
-        exportExcelFilename={`IAM_EntityTokens_${entity.entity_id}_Detail_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
+        exportCsvFilename={`IAM_EntityTokens_${entity.entity_id}_Detail_Downloaded-Date-${ymd()}.csv`}
+        exportExcelFilename={`IAM_EntityTokens_${entity.entity_id}_Detail_Downloaded-Date-${ymd()}.xlsx`}
         exportInfo={exportInfoDetail}
         initialSort={{ key: "date", direction: "desc" }}
       />
@@ -466,14 +468,6 @@ function MiniKpi({ label, value }: { label: string; value: number }) {
       <div className="text-xl font-semibold tabular-nums">{value}</div>
     </div>
   );
-}
-
-function todayISO() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
 }
 
 /** ---------------- Helpers ---------------- */
@@ -504,9 +498,12 @@ function buildMergedEntities(tokenRows: TokenTelemetryRow[], crRows: EntityListI
 
     // track max last_token_time
     if (r.last_token_time) {
-      const cur = bucket.last ? new Date(bucket.last).getTime() : -Infinity;
-      const next = new Date(r.last_token_time).getTime();
-      if (Number.isFinite(next) && next > cur) bucket.last = r.last_token_time;
+      // Compare as IST timestamps
+      const cur = bucket.last ? parseIstString(bucket.last)?.getTime() ?? -Infinity : -Infinity;
+      const next = parseIstString(r.last_token_time)?.getTime() ?? -Infinity;
+      if (Number.isFinite(next) && next > cur) {
+        bucket.last = r.last_token_time;
+      }
     }
 
     // aggregate per day

@@ -15,7 +15,7 @@ import { AppIcons } from "@/lib/icon-map";
 import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
 import TypeBadge from "@/components/common/TypeBadge";
-import type { EntityType } from "@/lib/types";
+import type { EntityType, FilterType } from "@/lib/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
@@ -26,6 +26,7 @@ import {
   type CrTelemetryRow,
 } from "@/services/crApi";
 import { extractErrorMessage } from "@/lib/http";
+import { exportedAtIST, ymd } from "@/lib/datetime";
 
 type RowMain = {
   name: string;
@@ -36,17 +37,23 @@ type RowMain = {
 };
 
 export default function TelemetryPage() {
-  const [qName, setQName] = useState("");
-  const [qId, setQId] = useState("");
-  const [qType, setQType] = useState<"all" | EntityType>("all");
-  const [dateStr, setDateStr] = useState<string>(toISODate(new Date())); // default today
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // filters
+  const [nameQuery, setNameQuery] = useState("");
+  const [idQuery, setIdQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<FilterType>("all");
+  const [dateStr, setDateStr] = useState<string>(ymd()); // default today
+
+  // data
+  const [entities, setEntities] = useState<EntityListItem[]>([]);
+  const [telemetry, setTelemetry] = useState<CrTelemetryRow[]>([]);
+
+  // Focus mode (hide header/KPIs; keep toggle visible)
   const [focusMode, setFocusMode] = useState<boolean>(false);
+
   // include / exclude rows with missing recent fetch time ("-")
   const [includeNARecent, setIncludeNARecent] = useState<boolean>(true);
 
-  const [entities, setEntities] = useState<EntityListItem[]>([]);
-  const [telemetry, setTelemetry] = useState<CrTelemetryRow[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -56,10 +63,10 @@ export default function TelemetryPage() {
     (async () => {
       try {
         setLoading(true); setErr(null);
-        const [elist, trows] = await Promise.all([fetchAllEntities(), fetchCRTelemetry()]);
+        const [entityList, telemetryRows] = await Promise.all([fetchAllEntities(), fetchCRTelemetry()]);
         if (!mounted) return;
-        setEntities(elist);
-        setTelemetry(trows);
+        setEntities(entityList);
+        setTelemetry(telemetryRows);
       } catch (e) {
         if (!mounted) return;
         setErr(extractErrorMessage(e));
@@ -73,9 +80,9 @@ export default function TelemetryPage() {
   async function refresh() {
     try {
       setIsRefreshing(true);
-      const [elist, trows] = await Promise.all([fetchAllEntities(), fetchCRTelemetry()]);
-      setEntities(elist);
-      setTelemetry(trows);
+      const [entityList, telemetryRows] = await Promise.all([fetchAllEntities(), fetchCRTelemetry()]);
+      setEntities(entityList);
+      setTelemetry(telemetryRows);
       toast.success("Telemetry refreshed");
     } catch (e) {
       toast.error(extractErrorMessage(e));
@@ -86,7 +93,7 @@ export default function TelemetryPage() {
 
   // join entities + telemetry → table rows for selected date
   const rowsMain: RowMain[] = useMemo(() => {
-    // Only include entities that exist in fetchAllEntities(); seed base with those
+    // Only include entities that exist in cr response fetchAllEntities()
     const lastByEntity = computeLastByEntity(telemetry);
     const base = new Map<string, RowMain>();
     entities.forEach((e) => {
@@ -117,18 +124,18 @@ export default function TelemetryPage() {
 
     // filtering
     let out = Array.from(base.values());
-    const nq = qName.trim().toLowerCase();
-    const iq = qId.trim().toLowerCase();
+    const nq = nameQuery.trim().toLowerCase();
+    const iq = idQuery.trim().toLowerCase();
     out = out.filter((r) => {
       const byName = !nq || r.name.toLowerCase().includes(nq);
       const byId = !iq || r.entity_id.toLowerCase().includes(iq);
-      const byType = qType === "all" || r.type === qType;
+      const byType = typeFilter === "all" || r.type === typeFilter;
       const byNA = includeNARecent || r.recent_fetch_time !== "-";
       return byName && byId && byType && byNA;
     });
 
     return out;
-  }, [entities, telemetry, dateStr, qName, qId, qType, includeNARecent]);
+  }, [entities, telemetry, dateStr, nameQuery, idQuery, typeFilter, includeNARecent]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -138,21 +145,18 @@ export default function TelemetryPage() {
     return { total, activeAA: activeByType.AA, activeFIP: activeByType.FIP, activeFIU: activeByType.FIU };
   }, [rowsMain]);
 
-  // Excel preamble (filters + meta)
+  // Excel meta info to append (filters + meta)
   const exportInfo = useMemo(() => {
     const items: Array<{ label: string; value: string }> = [];
     items.push({ label: "Date", value: dateStr || "All" });
-    if (qName.trim()) items.push({ label: "Name contains", value: qName.trim() });
-    if (qId.trim()) items.push({ label: "Entity ID contains", value: qId.trim() });
-    items.push({ label: "Type", value: qType === "all" ? "All" : qType });
+    if (nameQuery.trim()) items.push({ label: "Name contains", value: nameQuery.trim() });
+    if (idQuery.trim()) items.push({ label: "Entity ID contains", value: idQuery.trim() });
+    items.push({ label: "Type", value: typeFilter === "all" ? "All" : typeFilter });
     items.push({ label: "Include N/A recent fetch", value: includeNARecent ? "Yes" : "No" });
     items.push({ label: "Rows (filtered)", value: String(rowsMain.length) });
-    items.push({
-      label: "Exported At",
-      value: new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "medium" }).format(new Date()),
-    });
+    items.push({ label: "Exported At (IST)", value: exportedAtIST() });
     return items;
-  }, [dateStr, qName, qId, qType, includeNARecent, rowsMain.length]);
+  }, [dateStr, nameQuery, idQuery, typeFilter, includeNARecent, rowsMain.length]);
 
   // table columns
   const mainCols: DataTableColumn<RowMain>[] = useMemo(() => [
@@ -193,10 +197,10 @@ export default function TelemetryPage() {
   ], []);
 
   const resetFilters = () => {
-    setQName("");
-    setQId("");
-    setQType("all");
-    setDateStr(toISODate(new Date()));
+    setNameQuery("");
+    setIdQuery("");
+    setTypeFilter("all");
+    setDateStr(ymd());
   };
 
   return (
@@ -275,8 +279,8 @@ export default function TelemetryPage() {
               </label>
               <Input
                 placeholder="e.g. FIP-SIMULATOR"
-                value={qName}
-                onChange={(e) => setQName(e.target.value)}
+                value={nameQuery}
+                onChange={(e) => setNameQuery(e.target.value)}
               />
             </div>
 
@@ -286,15 +290,15 @@ export default function TelemetryPage() {
               </label>
               <Input
                 placeholder="e.g. FIP-SIMULATOR-33"
-                value={qId}
-                onChange={(e) => setQId(e.target.value)}
+                value={idQuery}
+                onChange={(e) => setIdQuery(e.target.value)}
               />
             </div>
 
             <div className="w-full md:w-56">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">RE Type</label>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              <Select value={qType} onValueChange={(v) => setQType(v as any)}>
+              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
@@ -347,21 +351,13 @@ export default function TelemetryPage() {
             error={err}
             emptyContent={<EmptyState message="No records match your filters." />}
             getRowKey={(r) => r.entity_id}
-            exportCsvFilename={`CR_Telemetry_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
-            exportExcelFilename={`CR_Telemetry_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
+            exportCsvFilename={`CR_Telemetry_Downloaded-Date-${ymd()}.csv`}
+            exportExcelFilename={`CR_Telemetry_Downloaded-Date-${ymd()}.xlsx`}
             exportInfo={exportInfo}
           />
         </Card>
       </div>
     </div>
   );
-}
-
-/** utils */
-function toISODate(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const da = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${da}`;
 }
 

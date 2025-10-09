@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { fetchSecretExpiry, type SecretExpiryItem } from "@/services/iamApi";
 import { toast } from "sonner";
 import { extractErrorMessage } from "@/lib/http";
+import { exportedAtIST, ymd, istStartOfDay, istEndOfDay, parseIstString, daysUntilIst } from "@/lib/datetime";
 
 /** ------------ Page-local view types ------------ */
 type RowView = {
@@ -97,11 +98,11 @@ export default function SecretExpiryDetails() {
           if (!fromDate && !toDate) return true;
           if (!r.expiryAt) return false;
 
-          const expiry = parseISTLocalDateTime(r.expiryAt);
-          if (Number.isNaN(expiry.getTime())) return false;
+          const expiry = parseIstString(r.expiryAt);
+          if (!expiry) return false;
 
-          const from = fromDate ? istMidnightStart(fromDate) : null;
-          const to = toDate ? istMidnightEnd(toDate) : null;
+          const from = fromDate ? istStartOfDay(fromDate) : null;
+          const to = toDate ? istEndOfDay(toDate) : null;
 
           if (from && expiry < from) return false;
           if (to && expiry > to) return false;
@@ -117,7 +118,7 @@ export default function SecretExpiryDetails() {
         id: r.id,
         type: r.type,
         expiryDateFmt: r.expiryAt ? r.expiryAt : "Not Available",
-        expiresIn: r.expiryAt ? daysUntilIST(r.expiryAt) : Number.NaN,
+        expiresIn: r.expiryAt ? daysUntilIst(r.expiryAt) : Number.NaN,
       }));
   }, [rows, qName, qId, qType, fromDate, toDate, includeNAExpiry]);
 
@@ -133,8 +134,7 @@ export default function SecretExpiryDetails() {
     items.push({ label: "Rows (filtered)", value: String(filtered.length) });
     items.push({
       label: "Exported At (IST)",
-      value: new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium" })
-        .format(new Date()),
+      value: exportedAtIST(),
     });
     return items;
   }, [fromDate, toDate, qName, qId, qType, includeNAExpiry, filtered.length]);
@@ -332,8 +332,8 @@ export default function SecretExpiryDetails() {
             error={err}
             emptyMessage="No records match your filters."
             getRowKey={(r) => r.id}
-            exportCsvFilename={`IAM_Secret_Expiry_Details_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.csv`}
-            exportExcelFilename={`IAM_Secret_Expiry_Details_Downloaded-Date-${new Date().toISOString().slice(0, 10)}.xlsx`}
+            exportCsvFilename={`IAM_Secret_Expiry_Details_Downloaded-Date-${ymd()}.csv`}
+            exportExcelFilename={`IAM_Secret_Expiry_Details_Downloaded-Date-${ymd()}.xlsx`}
             exportInfo={exportInfo}
             initialSort={{ key: "name", direction: "asc" }}
           />
@@ -343,49 +343,9 @@ export default function SecretExpiryDetails() {
   );
 }
 
-/** ------------ IST helpers & utils ------------ */
-const pad2 = (n: number) => String(n).padStart(2, "0");
-
-/** Parse "YYYY-MM-DD HH:mm:ss" as IST (+05:30). */
-function parseISTLocalDateTime(s: string): Date {
-  return new Date(`${s.replace(" ", "T")}+05:30`);
-}
-
-/** Build IST midnight start from a YYYY-MM-DD string. */
-function istMidnightStart(ymd: string): Date {
-  return new Date(`${ymd}T00:00:00.000+05:30`);
-}
-
-/** Build IST end-of-day from a YYYY-MM-DD string (inclusive). */
-function istMidnightEnd(ymd: string): Date {
-  return new Date(`${ymd}T23:59:59.999+05:30`);
-}
-
-/** Days until expiry, computed at IST midnight boundaries. */
-function daysUntilIST(isoLocalIST: string): number {
-  const expiry = parseISTLocalDateTime(isoLocalIST);
-
-  // "today" in IST, midnight
-  const now = new Date();
-  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-  const istNow = new Date(utcMs + 330 * 60000);
-  const todayY = istNow.getFullYear();
-  const todayM = pad2(istNow.getMonth() + 1);
-  const todayD = pad2(istNow.getDate());
-  const startTodayIST = new Date(`${todayY}-${todayM}-${todayD}T00:00:00+05:30`);
-
-  const expY = expiry.getFullYear();
-  const expM = pad2(expiry.getMonth() + 1);
-  const expD = pad2(expiry.getDate());
-  const startExpiryIST = new Date(`${expY}-${expM}-${expD}T00:00:00+05:30`);
-
-  return Math.ceil((startExpiryIST.getTime() - startTodayIST.getTime()) / 86400000);
-}
-
 /** De-dupe by entity id (keep last occurrence). */
 function dedupeById(items: SecretExpiryItem[]): SecretExpiryItem[] {
   const map = new Map<string, SecretExpiryItem>();
   items.forEach(i => map.set(i.id, i));
   return Array.from(map.values());
 }
-

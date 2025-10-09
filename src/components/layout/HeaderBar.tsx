@@ -19,6 +19,7 @@ import NotificationsSheet, { type NotificationItem } from "./NotificationsSheet"
 import HelpDialog from "./HelpDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { clearUser, getUser } from "@/lib/authStorage";
+import { fmtIST } from "@/lib/datetime";
 
 const ACRONYMS: Record<string, string> = { cr: "CR", iam: "IAM" };
 
@@ -185,14 +186,13 @@ export default function HeaderBar() {
 }
 
 function seedNotifications(): NotificationItem[] {
-  const now = Date.now();
-  const iso = (msAgo: number) => new Date(now - msAgo).toISOString();
+  const istAgo = (msAgo: number) => fmtIST(new Date(Date.now() - msAgo));
   return [
     {
       id: "n1",
       title: "Coming soon: Smart alerts",
       description: "Get notified about expiring secrets, report completions, and anomalies.",
-      time: iso(6 * 60 * 60 * 1000),
+      time: istAgo(6 * 60 * 60 * 1000),
       type: "system",
       read: false,
       actionLabel: "Learn more",
@@ -202,7 +202,7 @@ function seedNotifications(): NotificationItem[] {
       id: "n2",
       title: "Welcome to the new console",
       description: "We’ve refreshed the UI. Let us know what you think!",
-      time: iso(3 * 24 * 60 * 60 * 1000),
+      time: istAgo(3 * 24 * 60 * 60 * 1000),
       type: "system",
       read: true,
       actionLabel: "What’s new",
