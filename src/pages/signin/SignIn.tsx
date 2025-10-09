@@ -75,16 +75,20 @@ export default function SignInPage() {
     }
   }
 
-
-
   return (
     <div className="min-h-dvh bg-gradient-to-b from-background to-muted/40">
       <div className="mx-auto grid min-h-dvh w-full max-w-md place-items-center px-4">
         <Card className="w-full max-w-md p-6 shadow-sm">
           {/* Brand + env */}
-          <div className="mb-5 flex items-center justify-between">
-            <BrandLogo variant="horizontal" className="h-8 w-auto" />
-            <span className="rounded-md border px-2 py-1 text-xs text-muted-foreground">
+          <div className="mb-5 grid grid-cols-[1fr_auto_1fr] items-center">
+            <BrandLogo
+              variant="horizontal"
+              className="h-8 w-auto justify-self-start"
+            />
+            <span className="justify-self-center hidden sm:inline rounded-md bg-primary/5 px-2 py-1 text-xs font-medium text-primary">
+              Ops Console
+            </span>
+            <span className="justify-self-end rounded-md border px-2 py-1 text-xs text-muted-foreground">
               {envLabel}
             </span>
           </div>
@@ -173,5 +177,4 @@ export default function SignInPage() {
       </div>
     </div>
   );
-
 }
