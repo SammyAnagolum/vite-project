@@ -8,11 +8,9 @@ import { ThemeProvider } from './providers/theme/theme-provider.tsx';
 import { ConfigProvider } from './providers/config/configProvider.tsx';
 import { setApiBase } from './lib/http.ts';
 
-const BASENAME = import.meta.env.VITE_APP_BASENAME ?? "/";
-
 const fetchConfig = async () => {
   try {
-    const response = await fetch(`http://localhost:3001/portal/api/config`);
+    const response = await fetch(`/api/config`);
     const config = await response.json();
     return config;
   } catch (error) {
@@ -23,6 +21,8 @@ const fetchConfig = async () => {
 
 fetchConfig().then((config) => {
   setApiBase(config.REACT_APP_SERVER_URL);
+
+  const BASENAME = config.VITE_APP_BASENAME ?? "/new-portal";
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
