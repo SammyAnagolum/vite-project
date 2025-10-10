@@ -24,7 +24,7 @@ export default function SignInPage() {
   const [error, setError] = useState<string>("");
 
   const [showPassword, setShowPassword] = useState(false);
-  const envLabel = import.meta.env.VITE_APP_ENV || "Sandbox";
+  const envLabel = config.VITE_APP_ENV || "Local";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
