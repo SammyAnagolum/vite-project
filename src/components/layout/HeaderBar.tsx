@@ -20,6 +20,7 @@ import HelpDialog from "./HelpDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { clearUser, getUser } from "@/lib/authStorage";
 import { fmtIST } from "@/lib/datetime";
+import { useConfig } from "@/providers/config/useConfig";
 
 const ACRONYMS: Record<string, string> = { cr: "CR", iam: "IAM" };
 
@@ -52,6 +53,7 @@ function Breadcrumbs() {
 
 export default function HeaderBar() {
   const navigate = useNavigate();
+  const config = useConfig();
 
   const user = React.useMemo(() => getUser(), []);
 
@@ -62,7 +64,7 @@ export default function HeaderBar() {
   }, [user?.email]);
 
   // environment label
-  const envLabel = import.meta.env.VITE_APP_ENV || "Sandbox";
+  const envLabel = config.VITE_APP_ENV || "Sandbox";
 
   // --- NEW: notifications state + overlays ---
   const [notifOpen, setNotifOpen] = React.useState(false);
