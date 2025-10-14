@@ -98,7 +98,7 @@ export default function HeaderBar() {
 
       {/* Actions */}
       <TooltipProvider delayDuration={200}>
-        <Tooltip>
+        {(["dev", "local"].includes((config.VITE_APP_ENV?? "").toLowerCase())) && <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
@@ -114,9 +114,9 @@ export default function HeaderBar() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>Notifications (coming soon)</TooltipContent>
-        </Tooltip>
+        </Tooltip>}
 
-        <Tooltip>
+        {(["dev", "local"].includes((config.VITE_APP_ENV?? "").toLowerCase())) && <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
@@ -128,7 +128,7 @@ export default function HeaderBar() {
             </Button>
           </TooltipTrigger>
           <TooltipContent>Help & Docs (coming soon)</TooltipContent>
-        </Tooltip>
+        </Tooltip>}
       </TooltipProvider>
 
       {/* User menu */}
@@ -147,11 +147,11 @@ export default function HeaderBar() {
               <div className="text-base text-muted-foreground">{user.email}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
+            {(["dev", "local"].includes((config.VITE_APP_ENV?? "").toLowerCase())) && <DropdownMenuItem asChild>
               <Link to="/profile" className="flex w-full items-center gap-2">
                 <User className="h-4 w-4" /> Profile
               </Link>
-            </DropdownMenuItem>
+            </DropdownMenuItem>}
             <DropdownMenuItem asChild>
               <Link to="/settings" className="flex w-full items-center gap-2">
                 <Settings className="h-4 w-4" /> Preferences
