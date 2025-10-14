@@ -51,20 +51,18 @@ export default function SignInPage() {
 
       toast.success("Signed in successfully!");
 
-      // OPTIONAL: stash token to survive refresh (comment out to stick to old approach strictly)
-      // sessionStorage.setItem("auth-token", token);
-
-      // Old app navigated to different routes; here we send everyone to CR Entities
+      // Navigate to CR Entities
       if (hasAdminRole) {
+        toast.success("Signed in successfully!");
         setUser({ email, token });
         navigate("/cr/entities", { replace: true });
       } else {
         if (selfServiceEnabled) {
+          toast.success("Signed in successfully!");
           setUser({ email, token });
           navigate("/cr/entities", { replace: true });
         } else {
           toast.warning("Signed in, but self-service portal is disabled.");
-          // stay on page; or route somewhere read-only if you prefer
         }
       }
     } catch {
