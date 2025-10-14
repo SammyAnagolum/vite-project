@@ -210,7 +210,7 @@ export default function TelemetryPage() {
           <h1 className="text-2xl font-semibold">Central Registry</h1>
           <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
           <div className="flex items-center gap-1.5">
-            <h2 className="text-base font-medium">Telemetry</h2>
+            <h2 className="text-base font-medium">Fetch Data</h2>
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -268,7 +268,7 @@ export default function TelemetryPage() {
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
             <div className="w-full md:w-56">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                For a specific date
+                Search by date
               </label>
               <Input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)} />
             </div>
@@ -317,7 +317,7 @@ export default function TelemetryPage() {
                   <div className="flex items-center py-2 gap-2 md:ml-2 cursor-help group">
                     <Switch id="toggle-na-recent" checked={includeNARecent} onCheckedChange={setIncludeNARecent} />
                     <Label htmlFor="toggle-na-recent" className="text-sm text-muted-foreground">
-                      N/A
+                      No fetch date
                     </Label>
                     <HelpCircle className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
                   </div>
