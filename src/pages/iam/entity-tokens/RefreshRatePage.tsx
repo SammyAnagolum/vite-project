@@ -19,6 +19,7 @@ import { extractErrorMessage } from "@/lib/http";
 import { fetchTokenData, type TokenTelemetryRow } from "@/services/iamApi";
 import { fetchAllEntities, type EntityListItem } from "@/services/crApi";
 import { ymd, parseIstString, istStartOfDay, exportedAtIST } from "@/lib/datetime";
+import MiniKpi from "@/components/common/MiniKpi";
 
 /** ---------------- Types (UI shapes) ---------------- */
 type DetailRow = {
@@ -35,14 +36,24 @@ type EntityRow = {
   details: DetailRow[];           // per-day details from API
 };
 
+// Aggregate for the main table by selected date
+type AggregatedRow = {
+  entity_name: string;
+  entity_id: string;
+  recent_timestamp: string | "-";
+  tokens_issued: number;
+  tokens_not_issued: number;
+  tokens_total: number;
+};
+
 const EMPTY_DETAILS: DetailRow[] = [];
 
 /** ---------------- Page ---------------- */
 export default function RefreshRate() {
   // filters
   const [selectedDate, setSelectedDate] = useState<string>(() => ymd());
-  const [qName, setQName] = useState("");
-  const [qId, setQId] = useState("");
+  const [nameQuery, setNameQuery] = useState("");
+  const [idQuery, setIdQuery] = useState("");
 
   // data state
   const [entities, setEntities] = useState<EntityRow[]>([]);
@@ -91,19 +102,9 @@ export default function RefreshRate() {
     }
   };
 
-  // Aggregate for the main table by selected date
-  type AggregatedRow = {
-    entity_name: string;
-    entity_id: string;
-    recent_timestamp: string | "-";
-    tokens_issued: number;
-    tokens_not_issued: number;
-    tokens_total: number;
-  };
-
   const aggregated = useMemo<AggregatedRow[]>(() => {
-    const nameQ = qName.trim().toLowerCase();
-    const idQ = qId.trim().toLowerCase();
+    const nameQ = nameQuery.trim().toLowerCase();
+    const idQ = idQuery.trim().toLowerCase();
 
     return entities
       .map((e) => {
@@ -125,25 +126,25 @@ export default function RefreshRate() {
         const hitId = !idQ || row.entity_id.toLowerCase().includes(idQ);
         return hitName && hitId;
       });
-  }, [entities, selectedDate, qName, qId]);
+  }, [entities, selectedDate, nameQuery, idQuery]);
 
   // -------- Export preamble for MAIN table (appears at top of Excel) --------
   const exportInfoMain = useMemo(() => {
     const items: Array<{ label: string; value: string }> = [];
     items.push({ label: "Date", value: selectedDate });
-    if (qName.trim()) items.push({ label: "Name contains", value: qName.trim() });
-    if (qId.trim()) items.push({ label: "Entity ID contains", value: qId.trim() });
+    if (nameQuery.trim()) items.push({ label: "Name contains", value: nameQuery.trim() });
+    if (idQuery.trim()) items.push({ label: "Entity ID contains", value: idQuery.trim() });
     items.push({ label: "Rows (filtered)", value: String(aggregated.length) });
     items.push({
       label: "Exported At (IST)",
       value: exportedAtIST(),
     });
     return items;
-  }, [selectedDate, qName, qId, aggregated.length]);
+  }, [selectedDate, nameQuery, idQuery, aggregated.length]);
 
   // KPIs
   const kpis = useMemo(() => {
-    const highVolume = aggregated.filter((r) => r.tokens_total > 1000).length;
+    const highVolume = aggregated.filter((r) => r.tokens_total > 200).length;
     const totalIssued = aggregated.reduce((s, r) => s + r.tokens_issued, 0);
     const totalNotIssued = aggregated.reduce((s, r) => s + r.tokens_not_issued, 0);
     const totalTokens = aggregated.reduce((s, r) => s + r.tokens_total, 0);
@@ -184,7 +185,7 @@ export default function RefreshRate() {
     },
     {
       key: "ts",
-      header: "Last Token Issued Timestamp",
+      header: "Last Token Issued",
       headClassName: "w-[220px]",
       cell: (r) => r.recent_timestamp,
       exportValue: (r) => r.recent_timestamp,
@@ -225,8 +226,8 @@ export default function RefreshRate() {
 
   const resetFilters = () => {
     setSelectedDate(ymd());
-    setQName("");
-    setQId("");
+    setNameQuery("");
+    setIdQuery("");
   };
 
   const selectedEntity = useMemo(
@@ -268,7 +269,7 @@ export default function RefreshRate() {
         {/* KPIs */}
         {!selectedEntity && !focusMode && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume (>1000)" value={kpis.highVolume} tone="emerald" />
+            <Kpi icon={<TrendingUp className="h-9 w-9" />} title="High Volume (>200)" value={kpis.highVolume} tone="emerald" />
             <Kpi icon={<Clock className="h-9 w-9" />} title="Inactive (24h+)" value={kpis.inactive24h} tone="amber" />
             <Kpi icon={<BarChart3 className="h-9 w-9" />} title="Total Issued" value={kpis.totalIssued} tone="indigo" />
             <Kpi icon={<XCircle className="h-9 w-9" />} title="Total Not Issued" value={kpis.totalNotIssued} tone="red" />
@@ -303,7 +304,7 @@ export default function RefreshRate() {
           {!selectedEntity ? (
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end">
               <div className="w-full md:w-56">
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">For a specific past date</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Search by date</label>
                 <div className="relative">
                   <Calendar className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -321,8 +322,8 @@ export default function RefreshRate() {
                   <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="e.g. HDFC-FIP"
-                    value={qName}
-                    onChange={(e) => setQName(e.target.value)}
+                    value={nameQuery}
+                    onChange={(e) => setNameQuery(e.target.value)}
                     className="pl-8"
                   />
                 </div>
@@ -336,8 +337,8 @@ export default function RefreshRate() {
                   <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="e.g. HDFC-FIP-001"
-                    value={qId}
-                    onChange={(e) => setQId(e.target.value)}
+                    value={idQuery}
+                    onChange={(e) => setIdQuery(e.target.value)}
                     className="pl-8"
                   />
                 </div>
@@ -457,16 +458,6 @@ function EntityDetailCard({
         initialSort={{ key: "date", direction: "desc" }}
       />
     </>
-  );
-}
-
-/** ---------------- Reusable bits ---------------- */
-function MiniKpi({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-border p-3">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-xl font-semibold tabular-nums">{value}</div>
-    </div>
   );
 }
 
