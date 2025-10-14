@@ -201,7 +201,7 @@ export default function EntitiesPage() {
           <h1 className="text-2xl font-semibold">Central Registry</h1>
           <span className="hidden sm:block h-5 w-px bg-border" aria-hidden="true" />
           <div className="flex items-center gap-1.5">
-            <h2 className="text-base font-medium">All Entities</h2>
+            <h2 className="text-base font-medium">Entities List</h2>
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
