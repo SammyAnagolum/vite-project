@@ -15,8 +15,8 @@ export const NAV: NavNode[] = [
         title: "Central Registry",
         icon: Database,
         children: [
-            { id: "cr-entities", title: "All Entities", path: "/cr/entities" },
-            { id: "cr-telemetry", title: "Metadata Fetch Usage", path: "/cr/telemetry" },
+            { id: "cr-entities", title: "Entities List", path: "/cr/entities" },
+            { id: "cr-fetch-data", title: "Fetch Data", path: "/cr/fetch-data" },
         ],
     },
     {
