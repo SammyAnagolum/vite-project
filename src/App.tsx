@@ -38,7 +38,7 @@ export default function App() {
             {/* CR */}
             <Route path="/cr" element={<Navigate to="/cr/entities" replace />} />
             <Route path="/cr/entities" element={<EntitiesPage />} />
-            <Route path="/cr/telemetry" element={<TelemetryPage />} />
+            <Route path="/cr/fetch-data" element={<TelemetryPage />} />
 
             {/* IAM */}
             <Route path="/iam" element={<Navigate to="/iam/secret-expiry/details" replace />} />
