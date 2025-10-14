@@ -14,7 +14,7 @@ import { AppIcons } from "@/lib/icon-map";
 import type { DataTableColumn } from "@/components/common/data-table/types";
 import DataTable from "@/components/common/DataTable";
 import TypeBadge from "@/components/common/TypeBadge";
-import type { EntityType } from "@/lib/types";
+import type { EntityType, FilterType } from "@/lib/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { fetchSecretExpiry, type SecretExpiryItem } from "@/services/iamApi";
 import { toast } from "sonner";
@@ -37,9 +37,9 @@ export default function SecretExpiryDetails() {
   const [err, setErr] = useState<string | null>(null);
 
   // filters
-  const [qName, setQName] = useState("");
-  const [qId, setQId] = useState("");
-  const [qType, setQType] = useState<"all" | EntityType>("all");
+  const [nameQuery, setNameQuery] = useState("");
+  const [idQuery, setIdQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<FilterType>("all");
   const [fromDate, setFromDate] = useState<string>(""); // YYYY-MM-DD
   const [toDate, setToDate] = useState<string>("");     // YYYY-MM-DD
   // include/exclude rows that have no expiry (N/A)
@@ -84,14 +84,14 @@ export default function SecretExpiryDetails() {
 
   // derived: filtered + formatted
   const filtered: RowView[] = useMemo(() => {
-    const nq = qName.trim().toLowerCase();
-    const iq = qId.trim().toLowerCase();
+    const nq = nameQuery.trim().toLowerCase();
+    const iq = idQuery.trim().toLowerCase();
 
     return rows
       .filter((r) => {
         const byName = !nq || r.name.toLowerCase().includes(nq);
         const byId = !iq || r.id.toLowerCase().includes(iq);
-        const byType = qType === "all" || r.type === qType;
+        const byType = typeFilter === "all" || r.type === typeFilter;
 
         // Date range (IST) on the expiryAt field
         const byRange = (() => {
@@ -120,16 +120,16 @@ export default function SecretExpiryDetails() {
         expiryDateFmt: r.expiryAt ? r.expiryAt : "Not Available",
         expiresIn: r.expiryAt ? daysUntilIst(r.expiryAt) : Number.NaN,
       }));
-  }, [rows, qName, qId, qType, fromDate, toDate, includeNAExpiry]);
+  }, [rows, nameQuery, idQuery, typeFilter, fromDate, toDate, includeNAExpiry]);
 
   // -------- Export preamble (shows up at top of the Excel file) --------
   const exportInfo = useMemo(() => {
     const items: Array<{ label: string; value: string }> = [];
     if (fromDate) items.push({ label: "From date (IST)", value: fromDate });
     if (toDate) items.push({ label: "To date (IST)", value: toDate });
-    if (qName.trim()) items.push({ label: "Name contains", value: qName.trim() });
-    if (qId.trim()) items.push({ label: "Entity ID contains", value: qId.trim() });
-    items.push({ label: "Type", value: qType === "all" ? "All" : qType });
+    if (nameQuery.trim()) items.push({ label: "Name contains", value: nameQuery.trim() });
+    if (idQuery.trim()) items.push({ label: "Entity ID contains", value: idQuery.trim() });
+    items.push({ label: "Type", value: typeFilter === "all" ? "All" : typeFilter });
     items.push({ label: "Include N/A expiry", value: includeNAExpiry ? "Yes" : "No" });
     items.push({ label: "Rows (filtered)", value: String(filtered.length) });
     items.push({
@@ -137,7 +137,7 @@ export default function SecretExpiryDetails() {
       value: exportedAtIST(),
     });
     return items;
-  }, [fromDate, toDate, qName, qId, qType, includeNAExpiry, filtered.length]);
+  }, [fromDate, toDate, nameQuery, idQuery, typeFilter, includeNAExpiry, filtered.length]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -185,9 +185,9 @@ export default function SecretExpiryDetails() {
 
   // actions
   const reset = () => {
-    setQName("");
-    setQId("");
-    setQType("all");
+    setNameQuery("");
+    setIdQuery("");
+    setTypeFilter("all");
     setFromDate("");
     setToDate("");
   };
@@ -257,7 +257,7 @@ export default function SecretExpiryDetails() {
           </div>
 
           {/* Filters */}
-          <div className="mb-4 grid gap-3 md:grid-cols-12 md:items-end">
+          <div className="mb-4 grid gap-3 md:grid-cols-16 md:items-end">
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">From date</label>
               <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
@@ -266,18 +266,18 @@ export default function SecretExpiryDetails() {
               <label className="mb-1 block text-xs font-medium text-muted-foreground">To date</label>
               <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
             </div>
-            <div className="md:col-span-2">
+            <div className="md:col-span-3">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Search by Entity Name</label>
-              <Input placeholder="e.g. FIP-SIMULATOR" value={qName} onChange={(e) => setQName(e.target.value)} />
+              <Input placeholder="e.g. FIP-SIMULATOR" value={nameQuery} onChange={(e) => setNameQuery(e.target.value)} />
             </div>
-            <div className="md:col-span-2">
+            <div className="md:col-span-3">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Search by Entity ID</label>
-              <Input placeholder="e.g. HDFC-FIP-001" value={qId} onChange={(e) => setQId(e.target.value)} />
+              <Input placeholder="e.g. HDFC-FIP-001" value={idQuery} onChange={(e) => setIdQuery(e.target.value)} />
             </div>
             <div className="md:col-span-1">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">RE Type</label>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              <Select value={qType} onValueChange={(v) => setQType(v as any)}>
+              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
@@ -289,7 +289,7 @@ export default function SecretExpiryDetails() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-3 flex gap-2 md:justify-end">
+            <div className="md:col-span-2 mb-1">
               {/* Include/Exclude N/A expiry toggle (with tooltip) */}
               <TooltipProvider delayDuration={200}>
                 <Tooltip>
@@ -297,7 +297,7 @@ export default function SecretExpiryDetails() {
                     <div className="group flex items-center gap-2 mr-auto cursor-help">
                       <Switch id="toggle-na-expiry" checked={includeNAExpiry} onCheckedChange={setIncludeNAExpiry} />
                       <Label htmlFor="toggle-na-expiry" className="text-sm text-muted-foreground">
-                        N/A
+                        No expiry
                       </Label>
                       <HelpCircle className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
                     </div>
@@ -307,6 +307,8 @@ export default function SecretExpiryDetails() {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+            </div>
+            <div className="md:col-span-3 flex gap-2 md:justify-end">
               <Button variant="outline" onClick={reset}>Reset</Button>
               <Button
                 variant="outline"
