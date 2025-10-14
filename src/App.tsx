@@ -58,7 +58,7 @@ export default function App() {
             <Route path="/settings" element={<PreferencesPage />} />
 
             {/* Profile */}
-            <Route path="/profile" element={<ProfilePage />} />
+            {(["dev", "local"].includes((config.VITE_APP_ENV?? "").toLowerCase())) && <Route path="/profile" element={<ProfilePage />} />}
 
             <Route path="*" element={<NotFound />} />
           </Route>
